@@ -1,0 +1,11 @@
+{
+  "region": "ap-southeast-1",
+  "app": {
+    "name": "company-management-dashboard",
+    "framework": "nextjs",
+    "httpPort": 3000,
+    "build": {
+      "command": "npm run build"
+    }
+  }
+}
