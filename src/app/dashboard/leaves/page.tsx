@@ -17,7 +17,7 @@ export default async function LeavesPage() {
   const pendingLeaves = isAdminOrHR ? await prisma.leave.findMany({
     where: { status: "PENDING" },
     include: { user: true },
-    orderBy: { createdAt: 'asc' }
+    orderBy: { startDate: 'asc' }
   }) : []
 
   return (
