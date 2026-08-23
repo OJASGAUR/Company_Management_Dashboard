@@ -53,7 +53,7 @@ model User {
   bankAccountNumber String?
   bankName          String?
   bankIfsc          String?
-  upiId              String?
+  upiId             String?
   resumeUrl         String?
   offerLetterUrl    String?
   certificatesUrl   String?
@@ -208,7 +208,9 @@ model Client {
   email String
   phone String?
   createdAt DateTime @default(now())
+  files FileRecord[]
   @@index([company])
+  @@index([email])
 }
 
 model Domain {
@@ -227,8 +229,11 @@ model FileRecord {
   fileUrl String
   size Int
   uploaderId String
+  clientId String?
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   @@index([uploaderId, createdAt])
+  @@index([clientId, createdAt])
 }
 
 model Notification {
