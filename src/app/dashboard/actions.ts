@@ -14,6 +14,7 @@ const TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const
 const LEAVE_TYPES = ["CASUAL", "SICK", "PAID", "LOSS_OF_PAY"] as const
 const LEAVE_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const
 const MANAGER_ROLES: Role[] = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR, Role.OPERATIONS_MANAGER, Role.TEAM_LEAD]
+const ALL_ROLES: Role[] = Object.values(Role) as Role[]
 
 export async function getDashboardStats() {
   const user = await requireAuth()
@@ -94,7 +95,7 @@ export async function assignTask(formData: FormData) {
 export async function createEmployee(formData: FormData) {
   await requireRole(permissions.manageUsers)
   const name = requiredString(formData.get("name"), "Name", 120), emailAddress = email(formData.get("email")), employeeId = requiredString(formData.get("employeeId"), "Employee ID", 50)
-  const role = enumValue(formData.get("role"), "Role", Object.values(Role)), department = optionalString(formData.get("department"), 120), rawPassword = requiredString(formData.get("password"), "Password", 200)
+  const role = enumValue(formData.get("role"), "Role", ALL_ROLES), department = optionalString(formData.get("department"), 120), rawPassword = requiredString(formData.get("password"), "Password", 200)
   if (rawPassword.length < 8) throw new Error("Password must be at least 8 characters")
   if (await prisma.user.findFirst({ where: { OR: [{ email: emailAddress }, { employeeId }] }, select: { id: true } })) throw new Error("Email or employee ID already exists")
   await prisma.user.create({ data: { name, email: emailAddress, employeeId, role, department, password: await bcrypt.hash(rawPassword, 12) } })
