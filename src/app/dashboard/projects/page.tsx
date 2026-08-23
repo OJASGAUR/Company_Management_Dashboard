@@ -4,10 +4,25 @@ import { requireRole } from "@/lib/auth/require-role"
 import { Role } from "@prisma/client"
 import type { ReactNode } from "react"
 
+const PROJECT_CREATE_ROLES: Role[] = [
+  Role.SUPER_ADMIN,
+  Role.DIRECTOR,
+  Role.OPERATIONS_MANAGER,
+]
+
 export default async function ProjectsPage() {
-  const user = await requireRole([Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.TEAM_LEAD, Role.DEVELOPER, Role.DESIGNER, Role.TESTER])
+  const user = await requireRole([
+    Role.SUPER_ADMIN,
+    Role.DIRECTOR,
+    Role.OPERATIONS_MANAGER,
+    Role.TEAM_LEAD,
+    Role.DEVELOPER,
+    Role.DESIGNER,
+    Role.TESTER,
+  ])
+
   const projects = await prisma.project.findMany({ orderBy: { createdAt: "desc" } })
-  const canCreateProject = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER].includes(user.role)
+  const canCreateProject = PROJECT_CREATE_ROLES.includes(user.role)
 
   return (
     <div className="mx-auto max-w-6xl space-y-7">
