@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { Role } from "@prisma/client"
+import { Role, OnboardingStatus } from "@prisma/client"
 import { requireRole } from "@/lib/auth/require-role"
 import { permissions } from "@/lib/auth/permissions"
-import { date, email, enumValue, optionalString, requiredString } from "@/lib/validation"
+import { encryptSecret } from "@/lib/crypto"
+import { date, email, enumValue, optionalDate, optionalString, requiredString } from "@/lib/validation"
 
 export async function createUser(formData: FormData) {
   await requireRole(permissions.manageUsers)
@@ -18,13 +19,33 @@ export async function createUser(formData: FormData) {
   const role = enumValue(formData.get("role"), "Role", Object.values(Role))
   const department = optionalString(formData.get("department"), 120)
   const designation = optionalString(formData.get("designation"), 120)
-  const joiningDateRaw = formData.get("joiningDate")
-  const joiningDate = joiningDateRaw ? date(joiningDateRaw, "Joining date") : null
+  const joiningDate = optionalDate(formData.get("joiningDate"), "Joining date")
+  const companyEmail = optionalString(formData.get("companyEmail"), 254)
+  const phone = optionalString(formData.get("phone"), 40)
+  const personalEmail = formData.get("personalEmail") ? email(formData.get("personalEmail")) : null
+  const dateOfBirth = optionalDate(formData.get("dateOfBirth"), "Date of birth")
+  const gender = optionalString(formData.get("gender"), 40)
+  const address = optionalString(formData.get("address"), 500)
+  const city = optionalString(formData.get("city"), 100)
+  const state = optionalString(formData.get("state"), 100)
+  const postalCode = optionalString(formData.get("postalCode"), 20)
+  const emergencyName = optionalString(formData.get("emergencyName"), 120)
+  const emergencyPhone = optionalString(formData.get("emergencyPhone"), 40)
+  const education = optionalString(formData.get("education"), 1000)
+  const experience = optionalString(formData.get("experience"), 2000)
+  const bankAccountName = optionalString(formData.get("bankAccountName"), 120)
+  const bankAccountNumberRaw = optionalString(formData.get("bankAccountNumber"), 100)
+  const bankName = optionalString(formData.get("bankName"), 120)
+  const bankIfsc = optionalString(formData.get("bankIfsc"), 30)
+  const upiId = optionalString(formData.get("upiId"), 120)
 
   if (password.length < 8) throw new Error("Password must be at least 8 characters")
 
-  const existingUser = await prisma.user.findUnique({ where: { email: emailAddress } })
-  if (existingUser) throw new Error("User with this email already exists")
+  const existingUser = await prisma.user.findFirst({
+    where: { OR: [{ email: emailAddress }, ...(companyEmail ? [{ companyEmail }] : [])] },
+    select: { id: true },
+  })
+  if (existingUser) throw new Error("Email or company email already exists")
 
   const hashedPassword = await bcrypt.hash(password, 12)
   const employeeId = `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
@@ -39,6 +60,26 @@ export async function createUser(formData: FormData) {
       designation,
       employeeId,
       joiningDate,
+      isActive: true,
+      onboardingStatus: OnboardingStatus.IN_PROGRESS,
+      companyEmail,
+      phone,
+      personalEmail,
+      dateOfBirth,
+      gender,
+      address,
+      city,
+      state,
+      postalCode,
+      emergencyName,
+      emergencyPhone,
+      education,
+      experience,
+      bankAccountName,
+      bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null,
+      bankName,
+      bankIfsc,
+      upiId,
     },
   })
 
