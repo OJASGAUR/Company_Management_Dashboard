@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit"
 import { email, optionalDate, optionalString, requiredString } from "@/lib/validation"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
+import { Role } from "@prisma/client"
 
 export async function createClient(formData: FormData) {
   const actor = await requireRole(permissions.manageClients)
@@ -26,31 +27,30 @@ export async function createClientPortalAccount(formData: FormData) {
   const clientId = requiredString(formData.get("clientId"), "Client ID", 100)
   const password = requiredString(formData.get("password"), "Portal password", 200)
   if (password.length < 8) throw new Error("Portal password must be at least 8 characters")
-
   const client = await prisma.client.findUnique({ where: { id: clientId } })
   if (!client) throw new Error("Client not found")
-
   const existingUser = await prisma.user.findFirst({ where: { email: client.email }, select: { id: true, role: true } })
   if (existingUser) {
-    if (existingUser.role !== "CLIENT") throw new Error("This email already belongs to a non-client user")
+    if (existingUser.role !== Role.CLIENT) throw new Error("This email already belongs to a non-client user")
     throw new Error("A client portal account already exists")
   }
+  const user = await prisma.user.create({ data: { name: client.name, email: client.email, password: await bcrypt.hash(password, 12), role: Role.CLIENT, isActive: true, onboardingStatus: "COMPLETED" }, select: { id: true } })
+  await Promise.allSettled([recordAudit({ actorId: actor.id, action: "CREATE_CLIENT_PORTAL_ACCOUNT", entity: "User", entityId: user.id, metadata: { clientId: client.id } })])
+  revalidatePath("/dashboard/tools")
+}
 
-  const user = await prisma.user.create({
-    data: {
-      name: client.name,
-      email: client.email,
-      password: await bcrypt.hash(password, 12),
-      role: "CLIENT",
-      isActive: true,
-      onboardingStatus: "COMPLETED",
-    },
-    select: { id: true },
-  })
-
-  await Promise.allSettled([
-    recordAudit({ actorId: actor.id, action: "CREATE_CLIENT_PORTAL_ACCOUNT", entity: "User", entityId: user.id, metadata: { clientId: client.id } }),
-  ])
+export async function shareClientDocument(formData: FormData) {
+  const actor = await requireRole(permissions.manageClients)
+  const clientId = requiredString(formData.get("clientId"), "Client ID", 100)
+  const fileName = requiredString(formData.get("fileName"), "Document name", 180)
+  const fileUrl = requiredString(formData.get("fileUrl"), "Document URL", 2000)
+  const sizeRaw = optionalString(formData.get("size"), 20)
+  const size = sizeRaw ? Number(sizeRaw) : 0
+  if (!Number.isFinite(size) || size < 0) throw new Error("Invalid file size")
+  const client = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true } })
+  if (!client) throw new Error("Client not found")
+  const file = await prisma.fileRecord.create({ data: { fileName, fileUrl, size: Math.round(size), uploaderId: actor.id, clientId } })
+  await Promise.allSettled([recordAudit({ actorId: actor.id, action: "SHARE_CLIENT_DOCUMENT", entity: "FileRecord", entityId: file.id, metadata: { clientId } })])
   revalidatePath("/dashboard/tools")
 }
 
