@@ -7,6 +7,7 @@ const protectedRoutes: Record<string, string[]> = {
   "/hr": ["SUPER_ADMIN", "DIRECTOR", "HR"],
 }
 
+const publicRoutes = new Set(["/", "/features", "/security", "/about"])
 const clientAllowedDashboardPaths = [
   "/dashboard",
   "/dashboard/client",
@@ -19,19 +20,20 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth
   const userRole = req.auth?.user?.role
   const pathname = nextUrl.pathname
-
-  const isPublicRoute = pathname === "/"
+  const isPublicRoute = publicRoutes.has(pathname)
   const isAuthRoute = pathname.startsWith("/api/auth") || pathname === "/login"
 
-  if (isAuthRoute || isPublicRoute) {
-    if (isLoggedIn && (pathname === "/login" || pathname === "/")) {
-      return NextResponse.redirect(new URL("/dashboard", nextUrl))
-    }
-    if (isPublicRoute && !isLoggedIn) return
-    if (isAuthRoute) return
+  if (isPublicRoute) {
+    if (isLoggedIn && pathname === "/") return NextResponse.redirect(new URL("/dashboard", nextUrl))
+    return NextResponse.next()
   }
 
-  if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl))
+  if (isAuthRoute) {
+    if (isLoggedIn && pathname === "/login") return NextResponse.redirect(new URL("/dashboard", nextUrl))
+    return NextResponse.next()
+  }
+
+  if (!isLoggedIn) return NextResponse.redirect(new URL("/", nextUrl))
 
   if (pathname.startsWith("/dashboard/client") && userRole !== "CLIENT") {
     return NextResponse.redirect(new URL("/dashboard", nextUrl))
@@ -43,10 +45,8 @@ export default auth((req) => {
   }
 
   for (const [route, allowedRoles] of Object.entries(protectedRoutes)) {
-    if (pathname.startsWith(route)) {
-      if (!userRole || !allowedRoles.includes(userRole)) {
-        return NextResponse.redirect(new URL("/unauthorized", nextUrl))
-      }
+    if (pathname.startsWith(route) && (!userRole || !allowedRoles.includes(userRole))) {
+      return NextResponse.redirect(new URL("/unauthorized", nextUrl))
     }
   }
 
