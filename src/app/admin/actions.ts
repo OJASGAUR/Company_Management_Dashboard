@@ -8,11 +8,12 @@ import { Role, OnboardingStatus } from "@prisma/client"
 import { requireRole } from "@/lib/auth/require-role"
 import { permissions } from "@/lib/auth/permissions"
 import { encryptSecret } from "@/lib/crypto"
-import { date, email, enumValue, id, optionalDate, optionalString, requiredString } from "@/lib/validation"
+import { recordAudit } from "@/lib/audit"
+import { notifyUser } from "@/lib/notifications"
+import { email, enumValue, id, optionalDate, optionalString, requiredString } from "@/lib/validation"
 
 export async function createUser(formData: FormData) {
-  await requireRole(permissions.manageUsers)
-
+  const actor = await requireRole(permissions.manageUsers)
   const name = requiredString(formData.get("name"), "Name", 120)
   const emailAddress = email(formData.get("email"))
   const password = requiredString(formData.get("password"), "Password", 200)
@@ -40,65 +41,44 @@ export async function createUser(formData: FormData) {
   const upiId = optionalString(formData.get("upiId"), 120)
 
   if (password.length < 8) throw new Error("Password must be at least 8 characters")
-
-  const existingUser = await prisma.user.findFirst({
-    where: { OR: [{ email: emailAddress }, ...(companyEmail ? [{ companyEmail }] : [])] },
-    select: { id: true },
-  })
+  const existingUser = await prisma.user.findFirst({ where: { OR: [{ email: emailAddress }, ...(companyEmail ? [{ companyEmail }] : [])] }, select: { id: true } })
   if (existingUser) throw new Error("Email or company email already exists")
 
   const hashedPassword = await bcrypt.hash(password, 12)
   const employeeId = `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
-
-  await prisma.user.create({
+  const created = await prisma.user.create({
     data: {
-      name,
-      email: emailAddress,
-      password: hashedPassword,
-      role,
-      department,
-      designation,
-      employeeId,
-      joiningDate,
-      isActive: true,
-      onboardingStatus: OnboardingStatus.IN_PROGRESS,
-      companyEmail,
-      phone,
-      personalEmail,
-      dateOfBirth,
-      gender,
-      address,
-      city,
-      state,
-      postalCode,
-      emergencyName,
-      emergencyPhone,
-      education,
-      experience,
-      bankAccountName,
-      bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null,
-      bankName,
-      bankIfsc,
-      upiId,
+      name, email: emailAddress, password: hashedPassword, role, department, designation, employeeId, joiningDate,
+      isActive: true, onboardingStatus: OnboardingStatus.IN_PROGRESS, companyEmail, phone, personalEmail, dateOfBirth,
+      gender, address, city, state, postalCode, emergencyName, emergencyPhone, education, experience,
+      bankAccountName, bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null,
+      bankName, bankIfsc, upiId,
     },
+    select: { id: true, name: true, employeeId: true },
   })
+
+  await Promise.allSettled([
+    recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role } }),
+    notifyUser(created.id, "Welcome to the company portal", "Your employee account has been created. Complete your onboarding checklist to finish setup."),
+  ])
 
   revalidatePath("/admin/users")
   redirect("/admin/users")
 }
 
 export async function setUserActive(formData: FormData) {
-  await requireRole(permissions.manageUsers)
+  const actor = await requireRole(permissions.manageUsers)
   const userId = id(requiredString(formData.get("userId"), "User ID"), "User ID")
   const active = formData.get("active") === "true"
-
   await prisma.user.update({ where: { id: userId }, data: { isActive: active } })
+  await Promise.allSettled([recordAudit({ actorId: actor.id, action: active ? "ENABLE" : "DISABLE", entity: "User", entityId: userId })])
   revalidatePath("/admin/users")
 }
 
 export async function completeOnboarding(formData: FormData) {
-  await requireRole(permissions.manageUsers)
+  const actor = await requireRole(permissions.manageUsers)
   const userId = id(requiredString(formData.get("userId"), "User ID"), "User ID")
   await prisma.user.update({ where: { id: userId }, data: { onboardingStatus: OnboardingStatus.COMPLETED } })
+  await Promise.allSettled([recordAudit({ actorId: actor.id, action: "COMPLETE_ONBOARDING", entity: "User", entityId: userId })])
   revalidatePath("/admin/users")
 }
