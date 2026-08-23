@@ -22,7 +22,7 @@ export async function createUser(formData: FormData) {
   const department = optionalString(formData.get("department"), 120)
   const designation = optionalString(formData.get("designation"), 120)
   const joiningDate = optionalDate(formData.get("joiningDate"), "Joining date")
-  const companyEmail = optionalString(formData.get("companyEmail"), 254)
+  const companyEmail = formData.get("companyEmail") ? email(formData.get("companyEmail")) : null
   const phone = optionalString(formData.get("phone"), 40)
   const personalEmail = formData.get("personalEmail") ? email(formData.get("personalEmail")) : null
   const dateOfBirth = optionalDate(formData.get("dateOfBirth"), "Date of birth")
@@ -46,14 +46,8 @@ export async function createUser(formData: FormData) {
   if (existingUser) throw new Error("Email or company email already exists")
   const hashedPassword = await bcrypt.hash(password, 12)
   const employeeId = `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
-  const created = await prisma.user.create({
-    data: { name, email: emailAddress, password: hashedPassword, role, department, designation, employeeId, joiningDate, isActive: true, onboardingStatus: OnboardingStatus.IN_PROGRESS, companyEmail, phone, personalEmail, dateOfBirth, gender, address, city, state, postalCode, emergencyName, emergencyPhone, education, experience, bankAccountName, bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null, bankName, bankIfsc, upiId },
-    select: { id: true, employeeId: true },
-  })
-  await Promise.allSettled([
-    recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role } }),
-    notifyUser(created.id, "Welcome to the company portal", "Your employee account has been created. Complete your onboarding checklist to finish setup."),
-  ])
+  const created = await prisma.user.create({ data: { name, email: emailAddress, password: hashedPassword, role, department, designation, employeeId, joiningDate, isActive: true, onboardingStatus: OnboardingStatus.IN_PROGRESS, companyEmail, phone, personalEmail, dateOfBirth, gender, address, city, state, postalCode, emergencyName, emergencyPhone, education, experience, bankAccountName, bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null, bankName, bankIfsc, upiId }, select: { id: true, employeeId: true } })
+  await Promise.allSettled([recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role } }), notifyUser(created.id, "Welcome to the company portal", "Your employee account has been created. Complete your onboarding checklist to finish setup.")])
   revalidatePath("/admin/users")
   redirect("/admin/users")
 }
