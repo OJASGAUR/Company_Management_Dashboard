@@ -3,6 +3,7 @@
 import { createUser } from "../../actions"
 import Link from "next/link"
 import { useState } from "react"
+import type { ReactNode } from "react"
 import { Role } from "@prisma/client"
 
 const roles: Role[] = [
@@ -92,7 +93,7 @@ export default function NewUserPage() {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="mb-5 text-lg font-semibold text-slate-900">{title}</h2>
@@ -101,6 +102,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Field({ label, children, wide = false }: { label: string; children: React.ReactNode; wide?: boolean }) {
+function Field({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) {
   return <label className={wide ? "space-y-1.5 md:col-span-2" : "space-y-1.5"}><span className="block text-sm font-medium text-slate-700">{label}</span>{children}</label>
 }
