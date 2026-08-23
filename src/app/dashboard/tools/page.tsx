@@ -12,8 +12,21 @@ export default async function ExternalToolsPage() {
     prisma.domain.findMany({ take: 8, orderBy: { expiryDate: "asc" } }),
     prisma.fileRecord.findMany({ take: 8, orderBy: { createdAt: "desc" } }),
   ])
-  const canManageClients = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS].includes(user.role)
-  const canManageFinance = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.ACCOUNTS].includes(user.role)
+
+  const clientManagementRoles: Role[] = [
+    Role.SUPER_ADMIN,
+    Role.DIRECTOR,
+    Role.OPERATIONS_MANAGER,
+    Role.ACCOUNTS,
+  ]
+  const financeManagementRoles: Role[] = [
+    Role.SUPER_ADMIN,
+    Role.DIRECTOR,
+    Role.ACCOUNTS,
+  ]
+
+  const canManageClients = clientManagementRoles.includes(user.role)
+  const canManageFinance = financeManagementRoles.includes(user.role)
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
