@@ -4,13 +4,16 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { Role, OnboardingStatus } from "@prisma/client"
+import { Role } from "@prisma/client"
 import { requireRole } from "@/lib/auth/require-role"
 import { permissions, canGrantRole } from "@/lib/auth/permissions"
 import { encryptSecret } from "@/lib/crypto"
 import { recordAudit } from "@/lib/audit"
 import { notifyUser } from "@/lib/notifications"
 import { email, enumValue, id, optionalDate, optionalString, requiredString } from "@/lib/validation"
+
+const ONBOARDING_IN_PROGRESS = "IN_PROGRESS"
+const ONBOARDING_COMPLETED = "COMPLETED"
 
 export async function createUser(formData: FormData) {
   const actor = await requireRole(permissions.manageUsers)
@@ -46,7 +49,7 @@ export async function createUser(formData: FormData) {
   if (existingUser) throw new Error("Email or company email already exists")
   const hashedPassword = await bcrypt.hash(password, 12)
   const employeeId = `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
-  const created = await prisma.user.create({ data: { name, email: emailAddress, password: hashedPassword, role, department, designation, employeeId, joiningDate, isActive: true, onboardingStatus: OnboardingStatus.IN_PROGRESS, companyEmail, phone, personalEmail, dateOfBirth, gender, address, city, state, postalCode, emergencyName, emergencyPhone, education, experience, bankAccountName, bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null, bankName, bankIfsc, upiId }, select: { id: true, employeeId: true } })
+  const created = await prisma.user.create({ data: { name, email: emailAddress, password: hashedPassword, role, department, designation, employeeId, joiningDate, isActive: true, onboardingStatus: ONBOARDING_IN_PROGRESS, companyEmail, phone, personalEmail, dateOfBirth, gender, address, city, state, postalCode, emergencyName, emergencyPhone, education, experience, bankAccountName, bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null, bankName, bankIfsc, upiId }, select: { id: true, employeeId: true } })
   await Promise.allSettled([recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role } }), notifyUser(created.id, "Welcome to the company portal", "Your employee account has been created. Complete your onboarding checklist to finish setup.")])
   revalidatePath("/admin/users")
   redirect("/admin/users")
@@ -70,7 +73,7 @@ export async function completeOnboarding(formData: FormData) {
   const userId = id(requiredString(formData.get("userId"), "User ID"), "User ID")
   const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
   if (!target || !canGrantRole(actor.role, target.role)) throw new Error("You are not allowed to update this account")
-  await prisma.user.update({ where: { id: userId }, data: { onboardingStatus: OnboardingStatus.COMPLETED } })
+  await prisma.user.update({ where: { id: userId }, data: { onboardingStatus: ONBOARDING_COMPLETED } })
   await Promise.allSettled([recordAudit({ actorId: actor.id, action: "COMPLETE_ONBOARDING", entity: "User", entityId: userId })])
   revalidatePath("/admin/users")
 }
