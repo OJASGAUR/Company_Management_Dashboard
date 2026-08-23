@@ -28,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <p className="mb-2 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Workspace</p>
           <Link href="/dashboard" className={navClass}>Dashboard</Link>
           <Link href="/dashboard/profile" className={navClass}>My Profile</Link>
-          <Link href="/dashboard/tasks" className={navClass}>Tasks</Link>
+          {canSeeTasks && <Link href="/dashboard/tasks" className={navClass}>Tasks</Link>}
           {canSeeProjects && <Link href="/dashboard/projects" className={navClass}>Projects</Link>}
           <Link href="/dashboard/attendance" className={navClass}>Attendance & Time</Link>
           <Link href="/dashboard/leaves" className={navClass}>Leave Management</Link>
