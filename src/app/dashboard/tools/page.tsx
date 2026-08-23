@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { requireRole } from "@/lib/auth/require-role"
 import { Role } from "@prisma/client"
@@ -13,24 +14,14 @@ export default async function ExternalToolsPage() {
     prisma.fileRecord.findMany({ take: 8, orderBy: { createdAt: "desc" } }),
   ])
 
-  const clientManagementRoles: Role[] = [
-    Role.SUPER_ADMIN,
-    Role.DIRECTOR,
-    Role.OPERATIONS_MANAGER,
-    Role.ACCOUNTS,
-  ]
-  const financeManagementRoles: Role[] = [
-    Role.SUPER_ADMIN,
-    Role.DIRECTOR,
-    Role.ACCOUNTS,
-  ]
-
+  const clientManagementRoles: Role[] = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS]
+  const financeManagementRoles: Role[] = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.ACCOUNTS]
   const canManageClients = clientManagementRoles.includes(user.role)
   const canManageFinance = financeManagementRoles.includes(user.role)
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
-      <div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Business Operations</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Finance & External Tools</h1><p className="mt-2 text-sm text-slate-500">CRM, invoices, domains and document-storage foundations.</p></div>
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Business Operations</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Finance & External Tools</h1><p className="mt-2 text-sm text-slate-500">CRM, client portals, invoices, domains and document-storage foundations.</p></div>{canManageClients && <Link href="/dashboard/tools/clients" className="rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-800">Client Portal Management</Link>}</div>
       {(canManageClients || canManageFinance) && <ToolsActions clients={clients} />}
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <Panel title="Accounts & Invoices" action={canManageFinance ? "Create above" : undefined}>{invoices.length ? <ul className="divide-y divide-slate-100">{invoices.map(inv => <li key={inv.id} className="flex items-center justify-between p-4"><div><p className="font-medium text-slate-900">Invoice #{inv.id.slice(-5).toUpperCase()}</p><p className="text-xs text-slate-500">Due: {inv.dueDate.toLocaleDateString()}</p></div><div className="text-right"><p className="font-semibold text-slate-900">₹{inv.amount.toLocaleString()}</p><span className={`text-[10px] rounded-full px-2 py-0.5 font-bold ${inv.status === "PAID" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>{inv.status}</span></div></li>)}</ul> : <Empty text="No invoices found." />}</Panel>
