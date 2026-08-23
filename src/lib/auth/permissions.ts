@@ -17,6 +17,18 @@ export const permissions = {
 /** Prevent lower-privilege administrators from escalating accounts. */
 export function canGrantRole(actor: Role, target: Role) {
   if (actor === Role.SUPER_ADMIN) return true
-  if (actor === Role.HR) return [Role.EMPLOYEE, Role.DEVELOPER, Role.DESIGNER, Role.TESTER, Role.TEAM_LEAD, Role.ACCOUNTS].includes(target)
+
+  if (actor === Role.HR) {
+    const allowedTargetRoles: Role[] = [
+      Role.EMPLOYEE,
+      Role.DEVELOPER,
+      Role.DESIGNER,
+      Role.TESTER,
+      Role.TEAM_LEAD,
+      Role.ACCOUNTS,
+    ]
+    return allowedTargetRoles.includes(target)
+  }
+
   return false
 }
