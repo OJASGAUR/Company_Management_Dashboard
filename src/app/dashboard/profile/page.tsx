@@ -1,0 +1,99 @@
+import { auth } from "@/auth"
+import { prisma } from "@/lib/prisma"
+import { redirect } from "next/navigation"
+
+export default async function ProfilePage() {
+  const session = await auth()
+  if (!session?.user?.id) redirect("/")
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      name: true,
+      email: true,
+      companyEmail: true,
+      employeeId: true,
+      role: true,
+      department: true,
+      designation: true,
+      joiningDate: true,
+      phone: true,
+      personalEmail: true,
+      dateOfBirth: true,
+      gender: true,
+      address: true,
+      city: true,
+      state: true,
+      postalCode: true,
+      emergencyName: true,
+      emergencyPhone: true,
+      education: true,
+      experience: true,
+      onboardingStatus: true,
+      isActive: true,
+      bankAccountName: true,
+      bankAccountNumber: true,
+      bankName: true,
+      bankIfsc: true,
+      upiId: true,
+    },
+  })
+
+  if (!user) redirect("/")
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Employee</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">My Profile</h1>
+        <p className="mt-2 text-sm text-slate-500">Your company identity and onboarding information.</p>
+      </div>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-xl font-bold text-indigo-700">{user.name?.charAt(0).toUpperCase() || "U"}</div>
+          <div><h2 className="text-xl font-bold text-slate-900">{user.name || "Unnamed employee"}</h2><p className="text-sm text-slate-500">{user.designation || user.role.replace(/_/g, " ")} · {user.employeeId || "No employee ID"}</p></div>
+          <span className="ml-auto rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{user.isActive ? "ACTIVE" : "DISABLED"}</span>
+        </div>
+      </section>
+
+      <InfoSection title="Employment" items={[
+        ["Role", user.role.replace(/_/g, " ")], ["Department", user.department], ["Designation", user.designation],
+        ["Joining date", formatDate(user.joiningDate)], ["Company email", user.companyEmail], ["Personal email", user.personalEmail || user.email],
+        ["Onboarding", user.onboardingStatus.replace(/_/g, " ")],
+      ]} />
+
+      <InfoSection title="Personal information" items={[
+        ["Phone", user.phone], ["Date of birth", formatDate(user.dateOfBirth)], ["Gender", user.gender],
+        ["Address", [user.address, user.city, user.state, user.postalCode].filter(Boolean).join(", ")],
+      ]} />
+
+      <InfoSection title="Emergency contact" items={[["Name", user.emergencyName], ["Phone", user.emergencyPhone]]} />
+      <InfoSection title="Education & experience" items={[["Education", user.education], ["Experience", user.experience]]} />
+
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+        <h2 className="text-lg font-semibold text-amber-900">Payroll information</h2>
+        <p className="mt-1 text-xs text-amber-700">Sensitive account numbers are stored encrypted and are not displayed in this profile view.</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <Item label="Account holder" value={user.bankAccountName} />
+          <Item label="Bank" value={user.bankName} />
+          <Item label="IFSC" value={user.bankIfsc} />
+          <Item label="UPI" value={user.upiId} />
+          <Item label="Account number" value={user.bankAccountNumber ? "Encrypted / protected" : null} />
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function InfoSection({ title, items }: { title: string; items: [string, string | null | undefined][] }) {
+  return <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="mb-5 text-lg font-semibold text-slate-900">{title}</h2><div className="grid gap-5 md:grid-cols-2">{items.map(([label, value]) => <Item key={label} label={label} value={value} />)}</div></section>
+}
+
+function Item({ label, value }: { label: string; value: string | null | undefined }) {
+  return <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{value || "—"}</p></div>
+}
+
+function formatDate(value: Date | null) {
+  return value ? value.toLocaleDateString() : null
+}
