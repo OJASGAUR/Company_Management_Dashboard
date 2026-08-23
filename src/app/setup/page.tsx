@@ -1,0 +1,18 @@
+import Link from "next/link"
+import { bootstrapAdmin } from "./actions"
+import { prisma } from "@/lib/prisma"
+import { Role } from "@prisma/client"
+
+export default async function SetupPage({ searchParams }: { searchParams: Promise<{ created?: string; employeeId?: string }> }) {
+  const params = await searchParams
+  const adminExists = (await prisma.user.count({ where: { role: Role.SUPER_ADMIN } })) > 0
+
+  return (
+    <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
+      <div className="mx-auto max-w-xl">
+        <div className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-400">Company OS</p><h1 className="mt-2 text-4xl font-black tracking-tight">First administrator setup</h1><p className="mt-3 text-sm leading-6 text-slate-400">This one-time setup exists only to recover a deployment that has no Super Admin account.</p></div>
+        {params.created === "1" ? <section className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6"><h2 className="font-bold text-emerald-300">Administrator created</h2><p className="mt-2 text-sm text-slate-300">Your Super Admin account is ready.</p>{params.employeeId && <p className="mt-3 text-sm text-slate-200">Admin ID: <span className="font-mono font-bold">{params.employeeId}</span></p>}<Link href="/" className="mt-5 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-950">Go to sign in</Link></section> : adminExists ? <section className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6"><h2 className="font-bold text-amber-300">Bootstrap disabled</h2><p className="mt-2 text-sm leading-6 text-slate-300">A Super Admin already exists. For security, this page cannot create another administrator.</p><Link href="/" className="mt-5 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-950">Back to sign in</Link></section> : <form action={bootstrapAdmin} className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.05] p-7 shadow-2xl"><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Bootstrap secret</span><input name="setupSecret" type="password" required className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-cyan-400" /></label><div className="grid gap-5 sm:grid-cols-2"><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Name</span><input name="name" required className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-cyan-400" /></label><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Email</span><input name="email" type="email" required className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-cyan-400" /></label></div><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">Password</span><input name="password" type="password" minLength={10} required className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-cyan-400" /><span className="mt-1 block text-xs text-slate-500">Minimum 10 characters.</span></label><button className="w-full rounded-xl bg-cyan-500 py-3.5 text-sm font-black text-slate-950 hover:bg-cyan-400">Create first Super Admin</button><p className="text-center text-xs text-slate-500">The setup secret must be configured as <code>BOOTSTRAP_ADMIN_SECRET</code> in the deployment environment.</p></form>}
+      </div>
+    </main>
+  )
+}
