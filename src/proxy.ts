@@ -7,7 +7,7 @@ const protectedRoutes: Record<string, string[]> = {
   "/hr": ["SUPER_ADMIN", "DIRECTOR", "HR"],
 }
 
-const publicRoutes = new Set(["/", "/features", "/security", "/about"])
+const publicRoutes = new Set(["/", "/features", "/security", "/about", "/setup"])
 const clientAllowedDashboardPaths = [
   "/dashboard",
   "/dashboard/client",
