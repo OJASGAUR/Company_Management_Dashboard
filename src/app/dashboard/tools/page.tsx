@@ -1,20 +1,19 @@
-import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireRole } from "@/lib/auth/require-role"
+import { Role } from "@prisma/client"
 import type { ReactNode } from "react"
 import ToolsActions from "./ToolsActions"
 
 export default async function ExternalToolsPage() {
-  const session = await auth()
-  if (!session?.user) redirect("/login")
+  const user = await requireRole([Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS])
   const [invoices, clients, domains, files] = await Promise.all([
     prisma.invoice.findMany({ take: 8, orderBy: { createdAt: "desc" } }),
     prisma.client.findMany({ take: 50, orderBy: { createdAt: "desc" } }),
     prisma.domain.findMany({ take: 8, orderBy: { expiryDate: "asc" } }),
     prisma.fileRecord.findMany({ take: 8, orderBy: { createdAt: "desc" } }),
   ])
-  const canManageClients = ["SUPER_ADMIN", "DIRECTOR", "OPERATIONS_MANAGER", "ACCOUNTS"].includes(session.user.role)
-  const canManageFinance = ["SUPER_ADMIN", "DIRECTOR", "ACCOUNTS"].includes(session.user.role)
+  const canManageClients = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS].includes(user.role)
+  const canManageFinance = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.ACCOUNTS].includes(user.role)
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
