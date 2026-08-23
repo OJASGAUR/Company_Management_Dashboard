@@ -22,18 +22,86 @@ enum Role {
   CLIENT
 }
 
-enum AttendanceStatus { PRESENT LATE HALF_DAY }
-enum LeaveType { CASUAL SICK PAID LOSS_OF_PAY }
-enum LeaveStatus { PENDING APPROVED REJECTED }
-enum ProjectStatus { PLANNING ACTIVE ON_HOLD COMPLETED }
-enum TaskPriority { LOW MEDIUM HIGH CRITICAL }
-enum TaskStatus { TODO IN_PROGRESS IN_REVIEW COMPLETED }
-enum AssetType { LAPTOP DESKTOP MONITOR KEYBOARD MOUSE MOBILE SIM OFFICE_KEY OTHER }
-enum AssetStatus { AVAILABLE ASSIGNED REPAIR }
-enum InvoiceStatus { UNPAID PAID OVERDUE }
-enum EventType { MEETING HOLIDAY BIRTHDAY }
-enum DomainStatus { ACTIVE EXPIRED }
-enum OnboardingStatus { IN_PROGRESS COMPLETED ON_HOLD }
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  HALF_DAY
+}
+
+enum LeaveType {
+  CASUAL
+  SICK
+  PAID
+  LOSS_OF_PAY
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  COMPLETED
+}
+
+enum AssetType {
+  LAPTOP
+  DESKTOP
+  MONITOR
+  KEYBOARD
+  MOUSE
+  MOBILE
+  SIM
+  OFFICE_KEY
+  OTHER
+}
+
+enum AssetStatus {
+  AVAILABLE
+  ASSIGNED
+  REPAIR
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  OVERDUE
+}
+
+enum EventType {
+  MEETING
+  HOLIDAY
+  BIRTHDAY
+}
+
+enum DomainStatus {
+  ACTIVE
+  EXPIRED
+}
+
+enum OnboardingStatus {
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
 
 model User {
   id                String           @id @default(cuid())
