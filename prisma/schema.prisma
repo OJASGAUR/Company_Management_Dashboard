@@ -62,18 +62,8 @@ enum TaskStatus {
   COMPLETED
 }
 
-enum AssetType {
-  LAPTOP
-  DESKTOP
-  MONITOR
-  KEYBOARD
-  MOUSE
-  MOBILE
-  SIM
-  OFFICE_KEY
-  OTHER
-}
-
+// Kept as strings for compatibility with the existing production data.
+// We can migrate these columns to native Postgres/Prisma enums later with an explicit data migration.
 enum AssetStatus {
   AVAILABLE
   ASSIGNED
@@ -263,7 +253,7 @@ model Event {
 model Asset {
   id String @id @default(cuid())
   name String
-  type AssetType
+  type String
   status AssetStatus @default(AVAILABLE)
   assignedToId String?
   assignedTo User? @relation("AssignedAssets", fields: [assignedToId], references: [id], onDelete: SetNull)
