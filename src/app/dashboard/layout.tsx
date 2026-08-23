@@ -5,112 +5,67 @@ import { redirect } from "next/navigation"
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await auth()
-  
-  if (!session?.user) {
-    redirect("/login")
-  }
+  if (!session?.user) redirect("/login")
+
+  const role = session.user.role
+  const isManagement = ["SUPER_ADMIN", "DIRECTOR", "HR", "OPERATIONS_MANAGER"].includes(role)
+  const canManageAssets = ["SUPER_ADMIN", "DIRECTOR", "HR", "OPERATIONS_MANAGER"].includes(role)
+  const canSeeFinance = ["SUPER_ADMIN", "DIRECTOR", "ACCOUNTS"].includes(role)
+  const canSeeProjects = ["SUPER_ADMIN", "DIRECTOR", "OPERATIONS_MANAGER", "TEAM_LEAD", "DEVELOPER", "DESIGNER", "TESTER", "CLIENT"].includes(role)
+  const canSeeTasks = role !== "CLIENT"
+
+  const navClass = "block rounded-lg px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold tracking-tight text-blue-400">Company Portal</h2>
+    <div className="flex h-screen bg-slate-50 text-slate-900">
+      <aside className="flex w-72 flex-col bg-slate-950 text-white">
+        <div className="border-b border-slate-800 p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">Company OS</p>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight">Company Portal</h2>
         </div>
-        
-        <nav className="flex-1 px-4 py-4 space-y-2">
-          <Link href="/dashboard" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-            Dashboard
-          </Link>
-          <Link href="/dashboard/attendance" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-            Attendance
-          </Link>
-          <Link href="/dashboard/leaves" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-            Leaves
-          </Link>
-          <Link href="/dashboard/chat" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-            Messages (Chat)
-          </Link>
-          
-          {session.user.role !== 'CLIENT' && (
-            <Link href="/dashboard/calendar" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-              Calendar
-            </Link>
-          )}
 
-          {/* Only IT/HR/Admin should manage assets */}
-          {["SUPER_ADMIN", "DIRECTOR", "HR", "OPERATIONS_MANAGER"].includes(session.user.role) && (
-            <Link href="/dashboard/assets" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-              Assets
-            </Link>
-          )}
+        <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-5">
+          <p className="mb-2 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Workspace</p>
+          <Link href="/dashboard" className={navClass}>Dashboard</Link>
+          <Link href="/dashboard/profile" className={navClass}>My Profile</Link>
+          <Link href="/dashboard/tasks" className={navClass}>Tasks</Link>
+          {canSeeProjects && <Link href="/dashboard/projects" className={navClass}>Projects</Link>}
+          <Link href="/dashboard/attendance" className={navClass}>Attendance & Time</Link>
+          <Link href="/dashboard/leaves" className={navClass}>Leave Management</Link>
+          <Link href="/dashboard/calendar" className={navClass}>Company Calendar</Link>
+          <Link href="/dashboard/chat" className={navClass}>Messages</Link>
 
-          {/* Only Finance and Admins see this */}
-          {["SUPER_ADMIN", "DIRECTOR", "ACCOUNTS"].includes(session.user.role) && (
-            <Link href="/dashboard/tools" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-              Finance & Tools
-            </Link>
-          )}
+          {canManageAssets && <>
+            <p className="mb-2 mt-6 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Resources</p>
+            <Link href="/dashboard/assets" className={navClass}>Assets</Link>
+          </>}
 
-          {/* Projects are for dev teams and management */}
-          {["SUPER_ADMIN", "DIRECTOR", "OPERATIONS_MANAGER", "TEAM_LEAD", "DEVELOPER", "DESIGNER", "TESTER", "CLIENT"].includes(session.user.role) && (
-            <Link href="/dashboard/projects" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-              Projects
-            </Link>
-          )}
+          {canSeeFinance && <>
+            <p className="mb-2 mt-6 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Business</p>
+            <Link href="/dashboard/tools" className={navClass}>Finance & CRM</Link>
+          </>}
 
-          {/* Everyone except maybe Client needs Tasks */}
-          {session.user.role !== 'CLIENT' && (
-            <Link href="/dashboard/tasks" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-              Tasks (Kanban)
-            </Link>
-          )}
-          
-          {["SUPER_ADMIN", "DIRECTOR", "HR", "OPERATIONS_MANAGER"].includes(session.user.role) && (
-            <>
-              <div className="pt-4 pb-2">
-                <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Management</p>
-              </div>
-              
-              {["SUPER_ADMIN", "DIRECTOR", "OPERATIONS_MANAGER"].includes(session.user.role) && (
-                <Link href="/dashboard/operations" className="block px-4 py-2 rounded-md bg-indigo-900/30 text-indigo-300 hover:bg-slate-800 transition-colors">
-                  Ops Dashboard
-                </Link>
-              )}
-              {["SUPER_ADMIN", "DIRECTOR", "HR"].includes(session.user.role) && (
-                <Link href="/admin" className="block px-4 py-2 mt-2 rounded-md bg-blue-900/30 text-blue-300 hover:bg-slate-800 transition-colors">
-                  Admin Panel
-                </Link>
-              )}
-            </>
-          )}
+          {isManagement && <>
+            <p className="mb-2 mt-6 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Management</p>
+            {["SUPER_ADMIN", "DIRECTOR", "OPERATIONS_MANAGER"].includes(role) && <Link href="/dashboard/operations" className={navClass}>Operations</Link>}
+            {["SUPER_ADMIN", "DIRECTOR", "HR"].includes(role) && <Link href="/admin" className={navClass}>Admin / HR</Link>}
+          </>}
+
+          {!canSeeTasks && <p className="mt-6 px-4 text-xs text-slate-500">Client access is limited to shared project information.</p>}
         </nav>
-        
-        <div className="p-4 border-t border-slate-800">
-          <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-medium">
-              {session.user.email?.charAt(0).toUpperCase()}
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-medium truncate">{session.user.name || 'User'}</p>
-              <p className="text-xs text-slate-400 truncate">{session.user.role.replace(/_/g, ' ')}</p>
-            </div>
+
+        <div className="border-t border-slate-800 p-4">
+          <div className="mb-4 flex items-center gap-3 px-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold">{session.user.email?.charAt(0).toUpperCase() || "U"}</div>
+            <div className="min-w-0"><p className="truncate text-sm font-medium">{session.user.name || "User"}</p><p className="truncate text-xs text-slate-500">{role.replace(/_/g, " ")}</p></div>
           </div>
-          <form action={async () => {
-            "use server"
-            await signOut({ redirectTo: "/" })
-          }}>
-            <button type="submit" className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-md transition-colors">
-              Sign Out
-            </button>
+          <form action={async () => { "use server"; await signOut({ redirectTo: "/" }) }}>
+            <button type="submit" className="w-full rounded-lg px-4 py-2.5 text-left text-sm font-medium text-red-400 transition hover:bg-slate-800">Sign Out</button>
           </form>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto p-8">
-        {children}
-      </main>
+      <main className="flex-1 overflow-auto p-6 md:p-8">{children}</main>
     </div>
   )
 }
