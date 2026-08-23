@@ -97,32 +97,72 @@ enum DomainStatus {
   EXPIRED
 }
 
+enum OnboardingStatus {
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+
 model User {
-  id                String    @id @default(cuid())
+  id                String          @id @default(cuid())
   name              String?
-  email             String?   @unique
+  email             String?         @unique
   emailVerified     DateTime?
   image             String?
   password          String?
-  role              Role      @default(EMPLOYEE)
+  role              Role            @default(EMPLOYEE)
   department        String?
   designation       String?
   joiningDate       DateTime?
-  employeeId        String?   @unique
+  employeeId        String?         @unique
+  isActive          Boolean         @default(true)
+  onboardingStatus  OnboardingStatus @default(IN_PROGRESS)
+  companyEmail      String?         @unique
+  phone             String?
+  personalEmail     String?
+  dateOfBirth       DateTime?
+  gender            String?
+  address           String?
+  city              String?
+  state             String?
+  postalCode        String?
+  emergencyName     String?
+  emergencyPhone    String?
+  education         String?
+  experience       String?
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankName          String?
+  bankIfsc          String?
+  upiId             String?
+  resumeUrl         String?
+  offerLetterUrl    String?
+  certificatesUrl   String?
+  idProofUrl        String?
+  photoUrl          String?
+  managerId         String?
 
-  accounts          Account[]
-  sessions          Session[]
+  accounts          Account[]        
+  sessions          Session[]        
   attendances       Attendance[]
   leaves            Leave[]
-  tasks             Task[]    @relation("AssignedTasks")
-  assignedTasks     Task[]    @relation("AssignedBy")
+  tasks             Task[]           @relation("AssignedTasks")
+  assignedTasks     Task[]           @relation("AssignedBy")
   timeLogs          TimeLog[]
-  sentMessages      Message[] @relation("SentMessages")
-  receivedMessages  Message[] @relation("ReceivedMessages")
-  assignedAssets    Asset[]   @relation("AssignedAssets")
+  sentMessages      Message[]        @relation("SentMessages")
+  receivedMessages  Message[]        @relation("ReceivedMessages")
+  assignedAssets    Asset[]          @relation("AssignedAssets")
+  manager           User?            @relation("ManagerReports", fields: [managerId], references: [id], onDelete: SetNull)
+  directReports     User[]           @relation("ManagerReports")
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([department])
+  @@index([role])
+  @@index([managerId])
+  @@index([isActive])
+  @@index([onboardingStatus])
 }
 
 model Attendance {
@@ -293,18 +333,18 @@ model FileRecord {
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
