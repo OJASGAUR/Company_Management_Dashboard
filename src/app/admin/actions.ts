@@ -8,7 +8,7 @@ import { Role, OnboardingStatus } from "@prisma/client"
 import { requireRole } from "@/lib/auth/require-role"
 import { permissions } from "@/lib/auth/permissions"
 import { encryptSecret } from "@/lib/crypto"
-import { date, email, enumValue, optionalDate, optionalString, requiredString } from "@/lib/validation"
+import { date, email, enumValue, id, optionalDate, optionalString, requiredString } from "@/lib/validation"
 
 export async function createUser(formData: FormData) {
   await requireRole(permissions.manageUsers)
@@ -85,4 +85,20 @@ export async function createUser(formData: FormData) {
 
   revalidatePath("/admin/users")
   redirect("/admin/users")
+}
+
+export async function setUserActive(formData: FormData) {
+  await requireRole(permissions.manageUsers)
+  const userId = id(requiredString(formData.get("userId"), "User ID"), "User ID")
+  const active = formData.get("active") === "true"
+
+  await prisma.user.update({ where: { id: userId }, data: { isActive: active } })
+  revalidatePath("/admin/users")
+}
+
+export async function completeOnboarding(formData: FormData) {
+  await requireRole(permissions.manageUsers)
+  const userId = id(requiredString(formData.get("userId"), "User ID"), "User ID")
+  await prisma.user.update({ where: { id: userId }, data: { onboardingStatus: OnboardingStatus.COMPLETED } })
+  revalidatePath("/admin/users")
 }
