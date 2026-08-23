@@ -1,0 +1,12 @@
+import Link from "next/link"
+import { prisma } from "@/lib/prisma"
+import { requireClientPortal } from "@/lib/client-portal"
+
+export default async function ClientInvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { client } = await requireClientPortal()
+  if (!client) return <div className="rounded-2xl bg-amber-50 p-8 text-amber-900">This client account is not linked to a client record yet.</div>
+  const { id } = await params
+  const invoice = await prisma.invoice.findFirst({ where: { id, clientId: client.id } })
+  if (!invoice) return <div className="rounded-2xl bg-red-50 p-8 text-red-900">Invoice not found.</div>
+  return <div className="mx-auto max-w-3xl space-y-6"><div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Invoice</p><h1 className="mt-1 text-3xl font-bold">#{invoice.id.slice(-8).toUpperCase()}</h1></div><Link href="/dashboard/client/invoices" className="text-sm font-semibold text-indigo-600">← Back to invoices</Link></div><article className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm"><div className="flex flex-col justify-between gap-6 border-b border-slate-100 pb-6 sm:flex-row"><div><p className="text-sm text-slate-500">Billed to</p><p className="mt-1 text-xl font-bold text-slate-900">{client.company}</p><p className="text-sm text-slate-500">{client.name} · {client.email}</p></div><div className="text-left sm:text-right"><p className="text-sm text-slate-500">Status</p><span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{invoice.status}</span></div></div><div className="grid gap-6 py-8 sm:grid-cols-3"><div><p className="text-xs uppercase tracking-wider text-slate-400">Amount</p><p className="mt-1 text-2xl font-bold">₹{invoice.amount.toLocaleString()}</p></div><div><p className="text-xs uppercase tracking-wider text-slate-400">Due date</p><p className="mt-1 font-semibold">{invoice.dueDate.toLocaleDateString()}</p></div><div><p className="text-xs uppercase tracking-wider text-slate-400">Issued</p><p className="mt-1 font-semibold">{invoice.createdAt.toLocaleDateString()}</p></div></div><div className="border-t border-slate-100 pt-6 text-sm leading-6 text-slate-500">For payment questions, use <Link href="/dashboard/client/messages" className="font-semibold text-indigo-600">Messages</Link> to contact Accounts.</div></article></div>
+}
