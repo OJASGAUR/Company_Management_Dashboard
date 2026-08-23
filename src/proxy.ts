@@ -33,6 +33,10 @@ export default auth((req) => {
 
   if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl))
 
+  if (pathname.startsWith("/dashboard/client") && userRole !== "CLIENT") {
+    return NextResponse.redirect(new URL("/dashboard", nextUrl))
+  }
+
   if (userRole === "CLIENT" && pathname.startsWith("/dashboard")) {
     const allowed = clientAllowedDashboardPaths.some(path => pathname === path || pathname.startsWith(`${path}/`))
     if (!allowed) return NextResponse.redirect(new URL("/dashboard/client", nextUrl))
