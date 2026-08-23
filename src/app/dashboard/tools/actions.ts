@@ -6,6 +6,7 @@ import { permissions } from "@/lib/auth/permissions"
 import { recordAudit } from "@/lib/audit"
 import { email, optionalDate, optionalString, requiredString } from "@/lib/validation"
 import { revalidatePath } from "next/cache"
+import bcrypt from "bcryptjs"
 
 export async function createClient(formData: FormData) {
   const actor = await requireRole(permissions.manageClients)
@@ -17,6 +18,39 @@ export async function createClient(formData: FormData) {
   if (existing) throw new Error("Client with this email already exists")
   const client = await prisma.client.create({ data: { name, company, email: clientEmail, phone } })
   await Promise.allSettled([recordAudit({ actorId: actor.id, action: "CREATE", entity: "Client", entityId: client.id })])
+  revalidatePath("/dashboard/tools")
+}
+
+export async function createClientPortalAccount(formData: FormData) {
+  const actor = await requireRole(permissions.manageClients)
+  const clientId = requiredString(formData.get("clientId"), "Client ID", 100)
+  const password = requiredString(formData.get("password"), "Portal password", 200)
+  if (password.length < 8) throw new Error("Portal password must be at least 8 characters")
+
+  const client = await prisma.client.findUnique({ where: { id: clientId } })
+  if (!client) throw new Error("Client not found")
+
+  const existingUser = await prisma.user.findFirst({ where: { email: client.email }, select: { id: true, role: true } })
+  if (existingUser) {
+    if (existingUser.role !== "CLIENT") throw new Error("This email already belongs to a non-client user")
+    throw new Error("A client portal account already exists")
+  }
+
+  const user = await prisma.user.create({
+    data: {
+      name: client.name,
+      email: client.email,
+      password: await bcrypt.hash(password, 12),
+      role: "CLIENT",
+      isActive: true,
+      onboardingStatus: "COMPLETED",
+    },
+    select: { id: true },
+  })
+
+  await Promise.allSettled([
+    recordAudit({ actorId: actor.id, action: "CREATE_CLIENT_PORTAL_ACCOUNT", entity: "User", entityId: user.id, metadata: { clientId: client.id } }),
+  ])
   revalidatePath("/dashboard/tools")
 }
 
