@@ -7,7 +7,6 @@ import { requireAuth } from "@/lib/auth/require-auth"
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await requireAuth().catch(() => null)
   if (!user) redirect("/")
-
   const role = user.role
   const isManagement = ["SUPER_ADMIN", "DIRECTOR", "HR", "OPERATIONS_MANAGER", "ACCOUNTS"].includes(role)
   const canManageAssets = ["SUPER_ADMIN", "DIRECTOR", "HR", "OPERATIONS_MANAGER"].includes(role)
@@ -25,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <p className="mb-2 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Workspace</p>
           <Link href="/dashboard" className={navClass}>Dashboard</Link>
           <Link href="/dashboard/profile" className={navClass}>My Profile</Link>
+          <Link href="/dashboard/notifications" className={navClass}>Notifications</Link>
           {canSeeTasks && <Link href="/dashboard/tasks" className={navClass}>Tasks</Link>}
           {canSeeProjects && <Link href="/dashboard/projects" className={navClass}>Projects</Link>}
           <Link href="/dashboard/attendance" className={navClass}>Attendance & Time</Link>
