@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { Role, OnboardingStatus } from "@prisma/client"
 import { requireRole } from "@/lib/auth/require-role"
-import { permissions } from "@/lib/auth/permissions"
+import { permissions, canGrantRole } from "@/lib/auth/permissions"
 import { encryptSecret } from "@/lib/crypto"
 import { recordAudit } from "@/lib/audit"
 import { notifyUser } from "@/lib/notifications"
@@ -18,6 +18,8 @@ export async function createUser(formData: FormData) {
   const emailAddress = email(formData.get("email"))
   const password = requiredString(formData.get("password"), "Password", 200)
   const role = enumValue(formData.get("role"), "Role", Object.values(Role))
+  if (!canGrantRole(actor.role, role)) throw new Error("You are not allowed to grant this role")
+
   const department = optionalString(formData.get("department"), 120)
   const designation = optionalString(formData.get("designation"), 120)
   const joiningDate = optionalDate(formData.get("joiningDate"), "Joining date")
@@ -69,6 +71,7 @@ export async function createUser(formData: FormData) {
 export async function setUserActive(formData: FormData) {
   const actor = await requireRole(permissions.manageUsers)
   const userId = id(requiredString(formData.get("userId"), "User ID"), "User ID")
+  if (userId === actor.id) throw new Error("You cannot disable your own account")
   const active = formData.get("active") === "true"
   await prisma.user.update({ where: { id: userId }, data: { isActive: active } })
   await Promise.allSettled([recordAudit({ actorId: actor.id, action: active ? "ENABLE" : "DISABLE", entity: "User", entityId: userId })])
