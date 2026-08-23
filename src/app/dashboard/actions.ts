@@ -1,18 +1,14 @@
 "use server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import { requireAuth } from "@/lib/auth/require-auth"
+import { requireRole } from "@/lib/auth/require-role"
+import { permissions } from "@/lib/auth/permissions"
 import { revalidatePath } from "next/cache"
 import bcrypt from 'bcryptjs'
 
 export async function getDashboardStats() {
-  const session = await auth()
-  if (!session?.user?.email) return null
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
-  })
-  if (!user) return null
-
+  const user = await requireAuth()
   const isAdmin = ['SUPER_ADMIN', 'DIRECTOR', 'HR', 'OPERATIONS_MANAGER', 'TEAM_LEAD'].includes(user.role)
 
   let todaysAttendance = null
@@ -21,53 +17,36 @@ export async function getDashboardStats() {
   let totalEmployees = 0
 
   if (isAdmin) {
-    // Management Stats
     activeTasks = await prisma.task.count({ where: { status: { in: ['TODO', 'IN_PROGRESS'] } } })
     pendingLeaves = await prisma.leave.count({ where: { status: 'PENDING' } })
     totalEmployees = await prisma.user.count({ where: { role: 'EMPLOYEE' } })
   } else {
-    // Employee Stats
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
-    
+
     todaysAttendance = await prisma.attendance.findFirst({
       where: { userId: user.id, date: { gte: startOfDay } }
     })
-    
+
     activeTasks = await prisma.task.count({
       where: { userId: user.id, status: { in: ['TODO', 'IN_PROGRESS'] } }
     })
   }
-  
-  return {
-    user,
-    isAdmin,
-    todaysAttendance,
-    activeTasks,
-    pendingLeaves,
-    totalEmployees
-  }
+
+  return { user, isAdmin, todaysAttendance, activeTasks, pendingLeaves, totalEmployees }
 }
 
 export async function punchIn() {
-  const session = await auth()
-  if (!session?.user?.email) throw new Error("Unauthorized")
-
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) throw new Error("User not found")
-
+  const user = await requireAuth()
   const now = new Date()
   const startOfDay = new Date(now)
   startOfDay.setHours(0, 0, 0, 0)
 
-  // Check if already punched in today
   const existing = await prisma.attendance.findFirst({
     where: { userId: user.id, date: { gte: startOfDay } }
   })
 
-  if (existing) {
-    throw new Error("Already punched in today")
-  }
+  if (existing) throw new Error("Already punched in today")
 
   await prisma.attendance.create({
     data: {
@@ -84,12 +63,7 @@ export async function punchIn() {
 }
 
 export async function punchOut() {
-  const session = await auth()
-  if (!session?.user?.email) throw new Error("Unauthorized")
-
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) throw new Error("User not found")
-
+  const user = await requireAuth()
   const startOfDay = new Date()
   startOfDay.setHours(0, 0, 0, 0)
 
@@ -97,9 +71,7 @@ export async function punchOut() {
     where: { userId: user.id, date: { gte: startOfDay } }
   })
 
-  if (!existing || existing.checkOut) {
-    throw new Error("Cannot punch out")
-  }
+  if (!existing || existing.checkOut) throw new Error("Cannot punch out")
 
   await prisma.attendance.update({
     where: { id: existing.id },
@@ -112,12 +84,7 @@ export async function punchOut() {
 }
 
 export async function getAttendanceHistory() {
-  const session = await auth()
-  if (!session?.user?.email) return []
-
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) return []
-
+  const user = await requireAuth()
   return prisma.attendance.findMany({
     where: { userId: user.id },
     orderBy: { date: 'desc' },
@@ -126,12 +93,7 @@ export async function getAttendanceHistory() {
 }
 
 export async function getTasks() {
-  const session = await auth()
-  if (!session?.user?.email) return []
-
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) return []
-
+  const user = await requireAuth()
   return prisma.task.findMany({
     where: { userId: user.id },
     orderBy: { updatedAt: 'desc' }
@@ -139,8 +101,15 @@ export async function getTasks() {
 }
 
 export async function updateTaskStatus(taskId: string, newStatus: string) {
-  const session = await auth()
-  if (!session?.user?.email) throw new Error("Unauthorized")
+  const user = await requireAuth()
+
+  const task = await prisma.task.findUnique({ where: { id: taskId } })
+  if (!task) throw new Error("Task not found")
+
+  const canManageAllTasks = permissions.assignTasks.includes(user.role as typeof permissions.assignTasks[number])
+  if (task.userId !== user.id && !canManageAllTasks) {
+    throw new Error("Forbidden")
+  }
 
   await prisma.task.update({
     where: { id: taskId },
@@ -153,11 +122,7 @@ export async function updateTaskStatus(taskId: string, newStatus: string) {
 }
 
 export async function applyLeave(formData: FormData) {
-  const session = await auth()
-  if (!session?.user?.email) throw new Error("Unauthorized")
-
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) throw new Error("User not found")
+  const user = await requireAuth()
 
   const type = formData.get("type") as string
   const startDate = new Date(formData.get("startDate") as string)
@@ -165,14 +130,7 @@ export async function applyLeave(formData: FormData) {
   const reason = formData.get("reason") as string
 
   await prisma.leave.create({
-    data: {
-      userId: user.id,
-      type,
-      startDate,
-      endDate,
-      reason,
-      status: "PENDING"
-    }
+    data: { userId: user.id, type, startDate, endDate, reason, status: "PENDING" }
   })
 
   revalidatePath('/dashboard/leaves')
@@ -180,8 +138,7 @@ export async function applyLeave(formData: FormData) {
 }
 
 export async function assignTask(formData: FormData) {
-  const session = await auth()
-  if (!session?.user?.email) throw new Error("Unauthorized")
+  const actor = await requireRole(permissions.assignTasks)
 
   const title = formData.get("title") as string
   const projectId = formData.get("projectId") as string
@@ -190,6 +147,9 @@ export async function assignTask(formData: FormData) {
   const deadline = formData.get("deadline") as string
   const description = formData.get("description") as string
 
+  const assignee = await prisma.user.findUnique({ where: { id: userId } })
+  if (!assignee) throw new Error("Assignee not found")
+
   await prisma.task.create({
     data: {
       title,
@@ -197,6 +157,7 @@ export async function assignTask(formData: FormData) {
       priority: priority as any,
       deadline: deadline ? new Date(deadline) : null,
       userId,
+      assignedById: actor.id,
       projectId: projectId || null,
       status: "TODO"
     }
@@ -207,13 +168,7 @@ export async function assignTask(formData: FormData) {
 }
 
 export async function createEmployee(formData: FormData) {
-  const session = await auth()
-  if (!session?.user?.email) throw new Error("Unauthorized")
-  
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user || !["SUPER_ADMIN", "HR"].includes(user.role)) {
-    throw new Error("Unauthorized to create employees")
-  }
+  await requireRole(permissions.manageUsers)
 
   const name = formData.get("name") as string
   const email = formData.get("email") as string
@@ -222,51 +177,31 @@ export async function createEmployee(formData: FormData) {
   const department = formData.get("department") as string
   const rawPassword = formData.get("password") as string
 
-  const hashedPassword = await bcrypt.hash(rawPassword || "password123", 10)
+  if (!rawPassword) throw new Error("Password is required")
+
+  const hashedPassword = await bcrypt.hash(rawPassword, 10)
 
   await prisma.user.create({
-    data: {
-      name,
-      email,
-      employeeId,
-      role,
-      department,
-      password: hashedPassword
-    }
+    data: { name, email, employeeId, role, department, password: hashedPassword }
   })
 
   revalidatePath('/dashboard/operations')
 }
 
 export async function updateLeaveStatus(formData: FormData) {
-  const session = await auth()
-  if (!session?.user?.email) throw new Error("Unauthorized")
-  
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user || !["SUPER_ADMIN", "HR"].includes(user.role)) {
-    throw new Error("Unauthorized to approve leaves")
-  }
+  await requireRole(permissions.approveLeaves)
 
   const leaveId = formData.get("leaveId") as string
   const status = formData.get("status") as string
 
-  await prisma.leave.update({
-    where: { id: leaveId },
-    data: { status: status as any }
-  })
+  await prisma.leave.update({ where: { id: leaveId }, data: { status: status as any } })
 
   revalidatePath('/dashboard/leaves')
   revalidatePath('/dashboard')
 }
 
 export async function createProject(formData: FormData) {
-  const session = await auth()
-  if (!session?.user?.email) throw new Error("Unauthorized")
-  
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user || !["SUPER_ADMIN", "DIRECTOR", "OPERATIONS_MANAGER"].includes(user.role)) {
-    throw new Error("Unauthorized to create projects")
-  }
+  await requireRole(permissions.manageProjects)
 
   const name = formData.get("name") as string
   const description = formData.get("description") as string
@@ -289,24 +224,14 @@ export async function createProject(formData: FormData) {
 }
 
 export async function createTask(formData: FormData) {
-  const session = await auth()
-  if (!session?.user?.email) throw new Error("Unauthorized")
-
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!user) throw new Error("User not found")
+  const user = await requireAuth()
 
   const title = formData.get("title") as string
   const description = formData.get("description") as string
   const priority = (formData.get("priority") as string) || "MEDIUM"
 
   await prisma.task.create({
-    data: {
-      title,
-      description,
-      priority: priority as any,
-      userId: user.id,
-      status: "TODO"
-    }
+    data: { title, description, priority: priority as any, userId: user.id, status: "TODO" }
   })
 
   revalidatePath('/dashboard/tasks')
