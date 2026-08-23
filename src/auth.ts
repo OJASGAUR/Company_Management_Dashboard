@@ -10,39 +10,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   pages: {
-    signIn: '/',
+    signIn: "/",
   },
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        identifier: { label: "Email or Admin ID", type: "text" },
-        password: { label: "Password", type: "password" }
+        identifier: { label: "Email or Employee ID", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.identifier || !credentials?.password) return null
-        
-        // Attempt to find user by email OR employeeId
+        if (typeof credentials?.identifier !== "string" || typeof credentials?.password !== "string") return null
+
+        const identifier = credentials.identifier.trim()
+        if (!identifier || credentials.password.length < 1) return null
+
         const user = await prisma.user.findFirst({
           where: {
+            isActive: true,
             OR: [
-              { email: credentials.identifier as string },
-              { employeeId: credentials.identifier as string }
-            ]
-          }
+              { email: identifier.toLowerCase() },
+              { employeeId: identifier },
+            ],
+          },
         })
-        
-        if (!user || !user.password) return null
-        
-        const passwordsMatch = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        )
-        
-        if (passwordsMatch) return user
-        return null
-      }
-    })
+
+        if (!user?.password) return null
+
+        const passwordsMatch = await bcrypt.compare(credentials.password, user.password)
+        if (!passwordsMatch) return null
+
+        return user
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -58,6 +58,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role = token.role as Role
       }
       return session
-    }
+    },
   },
 })
