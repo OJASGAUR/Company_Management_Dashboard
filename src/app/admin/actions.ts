@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { revalidatePath } from "next/cache"
-import { revalidatePath as refreshPath } from "next/cache"
 import { redirect } from "next/navigation"
 import { Role, OnboardingStatus } from "@prisma/client"
 import { requireRole } from "@/lib/auth/require-role"
@@ -55,7 +54,7 @@ export async function createUser(formData: FormData) {
     recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role } }),
     notifyUser(created.id, "Welcome to the company portal", "Your employee account has been created. Complete your onboarding checklist to finish setup."),
   ])
-  refreshPath("/admin/users")
+  revalidatePath("/admin/users")
   redirect("/admin/users")
 }
 
@@ -69,7 +68,7 @@ export async function setUserActive(formData: FormData) {
   if (!canGrantRole(actor.role, target.role)) throw new Error("You are not allowed to change this account")
   await prisma.user.update({ where: { id: userId }, data: { isActive: active } })
   await Promise.allSettled([recordAudit({ actorId: actor.id, action: active ? "ENABLE" : "DISABLE", entity: "User", entityId: userId })])
-  refreshPath("/admin/users")
+  revalidatePath("/admin/users")
 }
 
 export async function completeOnboarding(formData: FormData) {
@@ -79,5 +78,5 @@ export async function completeOnboarding(formData: FormData) {
   if (!target || !canGrantRole(actor.role, target.role)) throw new Error("You are not allowed to update this account")
   await prisma.user.update({ where: { id: userId }, data: { onboardingStatus: OnboardingStatus.COMPLETED } })
   await Promise.allSettled([recordAudit({ actorId: actor.id, action: "COMPLETE_ONBOARDING", entity: "User", entityId: userId })])
-  refreshPath("/admin/users")
+  revalidatePath("/admin/users")
 }
