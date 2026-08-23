@@ -9,6 +9,8 @@ export const permissions = {
   manageProjects: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER] as const,
   assignTasks: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.TEAM_LEAD] as const,
   approveLeaves: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR] as const,
+  manageFinance: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.ACCOUNTS] as const,
+  manageClients: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS] as const,
   manageSystem: [Role.SUPER_ADMIN] as const,
 } as const
 
