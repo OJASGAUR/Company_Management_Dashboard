@@ -7,44 +7,39 @@ import { redirect } from "next/navigation"
 import { Role } from "@prisma/client"
 import { requireRole } from "@/lib/auth/require-role"
 import { permissions } from "@/lib/auth/permissions"
+import { date, email, enumValue, optionalString, requiredString } from "@/lib/validation"
 
 export async function createUser(formData: FormData) {
   await requireRole(permissions.manageUsers)
 
-  const name = formData.get("name") as string
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
-  const role = formData.get("role") as Role
-  const department = formData.get("department") as string
-  const designation = formData.get("designation") as string
-  const joiningDate = formData.get("joiningDate") as string
-  
-  if (!email || !password) {
-    throw new Error("Email and password are required")
-  }
+  const name = requiredString(formData.get("name"), "Name", 120)
+  const emailAddress = email(formData.get("email"))
+  const password = requiredString(formData.get("password"), "Password", 200)
+  const role = enumValue(formData.get("role"), "Role", Object.values(Role))
+  const department = optionalString(formData.get("department"), 120)
+  const designation = optionalString(formData.get("designation"), 120)
+  const joiningDateRaw = formData.get("joiningDate")
+  const joiningDate = joiningDateRaw ? date(joiningDateRaw, "Joining date") : null
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email }
-  })
+  if (password.length < 8) throw new Error("Password must be at least 8 characters")
 
-  if (existingUser) {
-    throw new Error("User with this email already exists")
-  }
+  const existingUser = await prisma.user.findUnique({ where: { email: emailAddress } })
+  if (existingUser) throw new Error("User with this email already exists")
 
-  const hashedPassword = await bcrypt.hash(password, 10)
-  const employeeId = `EMP-${Math.floor(1000 + Math.random() * 9000)}`
+  const hashedPassword = await bcrypt.hash(password, 12)
+  const employeeId = `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
 
   await prisma.user.create({
     data: {
       name,
-      email,
+      email: emailAddress,
       password: hashedPassword,
       role,
-      department: department || null,
-      designation: designation || null,
+      department,
+      designation,
       employeeId,
-      joiningDate: joiningDate ? new Date(joiningDate) : null,
-    }
+      joiningDate,
+    },
   })
 
   revalidatePath("/admin/users")
