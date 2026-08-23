@@ -2,62 +2,27 @@ import Link from "next/link"
 import { ReactNode } from "react"
 import { auth, signOut } from "@/auth"
 import { redirect } from "next/navigation"
+import { Role } from "@prisma/client"
+
+const ADMIN_ROLES = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR] as const
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await auth()
-  
-  if (!session?.user) {
-    redirect("/login")
-  }
+  if (!session?.user) redirect("/login")
+  if (!ADMIN_ROLES.includes(session.user.role as typeof ADMIN_ROLES[number])) redirect("/dashboard")
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold tracking-tight text-blue-400">Admin Panel</h2>
-        </div>
-        
-        <nav className="flex-1 px-4 py-4 space-y-2">
-          <Link href="/dashboard" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-            ← Back to Dashboard
-          </Link>
-          <div className="pt-4 pb-2">
-            <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Management</p>
-          </div>
-          <Link href="/admin/users" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
-            User Management
-          </Link>
-          <Link href="/admin/roles" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors text-slate-500 cursor-not-allowed">
-            Menu Permissions (WIP)
-          </Link>
+    <div className="flex h-screen bg-slate-50 text-slate-900">
+      <aside className="flex w-72 flex-col bg-slate-950 text-white">
+        <div className="border-b border-slate-800 p-6"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">Administration</p><h2 className="mt-1 text-2xl font-bold tracking-tight">Admin Panel</h2></div>
+        <nav className="flex-1 space-y-1 px-4 py-5">
+          <Link href="/dashboard" className="block rounded-lg px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white">← Back to Dashboard</Link>
+          <p className="mb-2 mt-6 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">People</p>
+          <Link href="/admin/users" className="block rounded-lg px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white">User Management</Link>
         </nav>
-        
-        <div className="p-4 border-t border-slate-800">
-          <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-medium">
-              {session.user.email?.charAt(0).toUpperCase()}
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-medium truncate">{session.user.name || 'User'}</p>
-              <p className="text-xs text-slate-400 truncate">{session.user.role}</p>
-            </div>
-          </div>
-          <form action={async () => {
-            "use server"
-            await signOut({ redirectTo: "/" })
-          }}>
-            <button type="submit" className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-md transition-colors">
-              Sign Out
-            </button>
-          </form>
-        </div>
+        <div className="border-t border-slate-800 p-4"><div className="mb-4 flex items-center gap-3 px-2"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold">{session.user.email?.charAt(0).toUpperCase() || "U"}</div><div className="min-w-0"><p className="truncate text-sm font-medium">{session.user.name || "User"}</p><p className="truncate text-xs text-slate-500">{session.user.role.replace(/_/g, " ")}</p></div></div><form action={async () => { "use server"; await signOut({ redirectTo: "/" }) }}><button type="submit" className="w-full rounded-lg px-4 py-2.5 text-left text-sm font-medium text-red-400 hover:bg-slate-800">Sign Out</button></form></div>
       </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto p-8">
-        {children}
-      </main>
+      <main className="flex-1 overflow-auto p-6 md:p-8">{children}</main>
     </div>
   )
 }
