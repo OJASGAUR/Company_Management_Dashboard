@@ -28,13 +28,6 @@ enum AttendanceStatus {
   HALF_DAY
 }
 
-enum LeaveType {
-  CASUAL
-  SICK
-  PAID
-  LOSS_OF_PAY
-}
-
 enum LeaveStatus {
   PENDING
   APPROVED
@@ -62,8 +55,6 @@ enum TaskStatus {
   COMPLETED
 }
 
-// Kept as strings for compatibility with the existing production data.
-// We can migrate these columns to native Postgres/Prisma enums later with an explicit data migration.
 enum AssetStatus {
   AVAILABLE
   ASSIGNED
@@ -171,7 +162,7 @@ model Attendance {
 model Leave {
   id String @id @default(cuid())
   userId String
-  type LeaveType
+  type String
   startDate DateTime
   endDate DateTime
   status LeaveStatus @default(PENDING)
