@@ -9,7 +9,7 @@ import bcrypt from "bcryptjs"
 import { Role } from "@prisma/client"
 import { date, email, enumValue, id, optionalDate, optionalString, requiredString } from "@/lib/validation"
 
-const TASK_STATUSES = ["TODO", "IN_PROGRESS", "COMPLETED"] as const
+const TASK_STATUSES = ["TODO", "IN_PROGRESS", "IN_REVIEW", "COMPLETED"] as const
 const TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const
 const LEAVE_TYPES = ["CASUAL", "SICK", "PAID", "LOSS_OF_PAY"] as const
 const LEAVE_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const
