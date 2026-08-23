@@ -8,12 +8,15 @@ Set these in the deployment provider's secret/environment store:
 - `AUTH_SECRET` — long random Auth.js secret
 - `NEXTAUTH_URL` — canonical HTTPS application URL
 - `CREDENTIAL_ENCRYPTION_KEY` — 64 hex characters representing 32 random bytes
+- `BOOTSTRAP_ADMIN_SECRET` — one-time secret for creating the first Super Admin when no Super Admin exists
 
-Generate the encryption key with:
+Generate secrets with strong random values, for example:
 
 ```bash
 openssl rand -hex 32
 ```
+
+After the first administrator is created, remove or rotate `BOOTSTRAP_ADMIN_SECRET` in the deployment environment. The `/setup` route refuses to create another Super Admin when one already exists.
 
 ## Database
 
@@ -36,6 +39,20 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+## First-admin recovery
+
+When a deployment has no Super Admin account:
+
+1. Add `BOOTSTRAP_ADMIN_SECRET` to the deployment environment.
+2. Redeploy so the new environment variable is available.
+3. Open `/setup`.
+4. Enter the bootstrap secret, administrator name, email and a new password of at least 10 characters.
+5. The server creates one `SUPER_ADMIN` account and records an audit event.
+6. Sign in from `/` using the newly created email or the displayed `ADM-XXXXXXXX` employee ID.
+7. Remove or rotate `BOOTSTRAP_ADMIN_SECRET`.
+
+The setup action is server-side, requires the secret, checks that no Super Admin exists, hashes the password with bcrypt, and does not expose any existing credentials.
 
 ## Security requirements
 
