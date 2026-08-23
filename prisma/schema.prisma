@@ -22,83 +22,21 @@ enum Role {
   CLIENT
 }
 
-enum AttendanceStatus {
-  PRESENT
-  LATE
-  HALF_DAY
-}
-
-enum LeaveStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum ProjectStatus {
-  PLANNING
-  ACTIVE
-  ON_HOLD
-  COMPLETED
-}
-
-enum TaskPriority {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-enum TaskStatus {
-  TODO
-  IN_PROGRESS
-  IN_REVIEW
-  COMPLETED
-}
-
-enum AssetStatus {
-  AVAILABLE
-  ASSIGNED
-  REPAIR
-}
-
-enum InvoiceStatus {
-  UNPAID
-  PAID
-  OVERDUE
-}
-
-enum EventType {
-  MEETING
-  HOLIDAY
-  BIRTHDAY
-}
-
-enum DomainStatus {
-  ACTIVE
-  EXPIRED
-}
-
-enum OnboardingStatus {
-  IN_PROGRESS
-  COMPLETED
-  ON_HOLD
-}
-
 model User {
-  id                String           @id @default(cuid())
+  id                String   @id @default(cuid())
   name              String?
-  email             String?          @unique
+  email             String?  @unique
   emailVerified     DateTime?
   image             String?
   password          String?
-  role              Role             @default(EMPLOYEE)
+  role              Role     @default(EMPLOYEE)
   department        String?
   designation       String?
   joiningDate       DateTime?
-  employeeId        String?          @unique
-  isActive          Boolean          @default(true)
-  onboardingStatus  OnboardingStatus @default(IN_PROGRESS)
-  companyEmail      String?          @unique
+  employeeId        String?  @unique
+  isActive          Boolean  @default(true)
+  onboardingStatus  String   @default("IN_PROGRESS")
+  companyEmail      String?
   phone             String?
   personalEmail     String?
   dateOfBirth       DateTime?
@@ -145,7 +83,6 @@ model User {
   @@index([role])
   @@index([managerId])
   @@index([isActive])
-  @@index([onboardingStatus])
 }
 
 model Attendance {
@@ -154,7 +91,7 @@ model Attendance {
   date DateTime
   checkIn DateTime
   checkOut DateTime?
-  status AttendanceStatus @default(PRESENT)
+  status String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, date])
 }
@@ -165,7 +102,7 @@ model Leave {
   type String
   startDate DateTime
   endDate DateTime
-  status LeaveStatus @default(PENDING)
+  status String
   reason String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, startDate])
@@ -177,7 +114,7 @@ model Project {
   name String
   description String?
   clientName String?
-  status ProjectStatus @default(ACTIVE)
+  status String
   startDate DateTime?
   endDate DateTime?
   tasks Task[]
@@ -192,9 +129,9 @@ model Task {
   assignedById String?
   title String
   description String?
-  priority TaskPriority @default(MEDIUM)
+  priority String
   deadline DateTime?
-  status TaskStatus @default(TODO)
+  status String
   project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   user User @relation("AssignedTasks", fields: [userId], references: [id], onDelete: Cascade)
   assignedBy User? @relation("AssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
@@ -236,7 +173,7 @@ model Event {
   title String
   description String?
   date DateTime
-  type EventType @default(MEETING)
+  type String
   createdAt DateTime @default(now())
   @@index([date])
 }
