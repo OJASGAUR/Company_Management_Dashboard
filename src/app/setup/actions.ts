@@ -22,7 +22,7 @@ export async function bootstrapAdmin(formData: FormData) {
   const password = requiredString(formData.get("password"), "Password", 200)
   if (password.length < 10) throw new Error("Password must be at least 10 characters")
 
-  const existingUser = await prisma.user.findUnique({ where: { email: emailAddress }, select: { id: true } })
+  const existingUser = await prisma.user.findFirst({ where: { email: emailAddress }, select: { id: true } })
   if (existingUser) throw new Error("That email is already registered")
 
   const employeeId = `ADM-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
