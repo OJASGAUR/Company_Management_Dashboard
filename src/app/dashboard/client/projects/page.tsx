@@ -1,0 +1,11 @@
+import Link from "next/link"
+import { getClientPortalData } from "@/lib/client-portal"
+
+export default async function ClientProjectsPage() {
+  const { client, projects } = await getClientPortalData()
+  if (!client) return <MissingLink />
+  return <div className="mx-auto max-w-7xl space-y-7"><Header title="Projects" text="Track every project linked to your company, including status and delivery dates." /><div className="grid gap-5 md:grid-cols-2">{projects.map(project => <article key={project.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-start justify-between gap-4"><h2 className="text-xl font-semibold">{project.name}</h2><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{project.status.replace(/_/g, " ")}</span></div><p className="mt-3 text-sm leading-6 text-slate-500">{project.description || "No description provided."}</p><div className="mt-6 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 text-sm"><div><span className="block text-xs uppercase text-slate-400">Start</span>{project.startDate?.toLocaleDateString() || "TBD"}</div><div><span className="block text-xs uppercase text-slate-400">Delivery</span>{project.endDate?.toLocaleDateString() || "TBD"}</div></div><Link href={`/dashboard/client/tasks?project=${project.id}`} className="mt-5 inline-flex text-sm font-semibold text-indigo-600">View project tasks →</Link></article>)}{projects.length===0 && <Empty text="No projects have been linked to this client account." />}</div></div>
+}
+function Header({ title, text }: { title: string; text: string }) { return <div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Client Portal</p><h1 className="mt-1 text-3xl font-bold">{title}</h1><p className="mt-2 text-sm text-slate-500">{text}</p></div> }
+function Empty({ text }: { text: string }) { return <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-500 md:col-span-2">{text}</div> }
+function MissingLink() { return <div className="rounded-2xl bg-amber-50 p-8 text-amber-900">This client account is not linked to a client record yet.</div> }
