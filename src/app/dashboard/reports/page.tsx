@@ -8,7 +8,7 @@ export default async function ReportsPage() {
   const session = await auth()
   if (!session?.user) redirect("/")
 
-  const allowed = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS]
+  const allowed: Role[] = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS]
   if (!allowed.includes(session.user.role)) redirect("/dashboard")
 
   const [employees, activeEmployees, projects, activeProjects, tasks, completedTasks, pendingLeaves, unpaidInvoices] = await Promise.all([
