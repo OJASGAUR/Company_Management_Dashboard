@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { sendDirectMessage } from "./actions"
 
 interface User {
@@ -26,9 +27,15 @@ export default function ChatClient({
   otherUsers: User[]
   initialMessages: Message[]
 }) {
+  const router = useRouter()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(otherUsers[0]?.id ?? null)
   const [inputText, setInputText] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => router.refresh(), 4000)
+    return () => window.clearInterval(timer)
+  }, [router])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -46,7 +53,7 @@ export default function ChatClient({
       <div className="flex w-80 flex-col border-r border-gray-200 bg-gray-50">
         <div className="border-b border-gray-200 p-4">
           <h2 className="text-lg font-semibold text-gray-900">Direct Messages</h2>
-          <p className="mt-1 text-xs text-gray-500">Messages are saved to your company workspace.</p>
+          <p className="mt-1 text-xs text-gray-500">Saved messages · updates automatically</p>
         </div>
         <div className="flex-1 overflow-y-auto">
           {otherUsers.map((user) => (
@@ -126,6 +133,7 @@ export default function ChatClient({
                   formData.set("content", inputText.trim())
                   await sendDirectMessage(formData)
                   setInputText("")
+                  router.refresh()
                 }}
                 className="flex gap-2"
               >
