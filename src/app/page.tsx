@@ -21,7 +21,7 @@ export default function LandingPage() {
           <header className="flex h-20 items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white font-black text-slate-950 shadow-lg">C</div><div><p className="text-sm font-bold tracking-wide">COMPANY OS</p><p className="text-[10px] uppercase tracking-[0.25em] text-slate-500">Management Platform</p></div></div>
             <div className="hidden items-center gap-6 text-sm text-slate-400 md:flex"><span>People</span><span>Operations</span><span>Projects</span><span>Insights</span></div>
-            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">● Secure workspace</span>
+            <div className="flex items-center gap-3"><span className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300 sm:inline-flex">● Secure workspace</span><a href="#sign-in" className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10">Sign in</a></div>
           </header>
           <section className="grid flex-1 items-center gap-14 py-12 lg:grid-cols-[1.08fr_0.92fr] lg:py-16">
             <div className="max-w-2xl">
@@ -31,7 +31,7 @@ export default function LandingPage() {
               <div className="mt-10 grid gap-5 sm:grid-cols-3">{features.map(feature => <div key={feature.title} className="border-l border-white/10 pl-4"><span className="text-xl text-indigo-300">{feature.icon}</span><h2 className="mt-3 text-sm font-bold text-white">{feature.title}</h2><p className="mt-1.5 text-xs leading-5 text-slate-500">{feature.text}</p></div>)}</div>
               <div className="mt-10 flex flex-wrap items-center gap-5 text-xs text-slate-500"><span>✓ Encrypted sensitive data</span><span>✓ Server-side authorization</span><span>✓ Audit-ready activity</span></div>
             </div>
-            <LoginCard role={role} setRole={setRole} />
+            <div id="sign-in" className="scroll-mt-8"><LoginCard role={role} setRole={setRole} /></div>
           </section>
           <footer className="flex flex-col gap-2 border-t border-white/10 py-5 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} Company OS</span><span>Internal company platform · Authorized users only</span></footer>
         </div>
