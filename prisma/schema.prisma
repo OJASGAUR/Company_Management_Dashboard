@@ -115,7 +115,7 @@ model User {
   bankAccountNumber String?
   bankName          String?
   bankIfsc          String?
-  upiId             String?
+  upiId              String?
   resumeUrl         String?
   offerLetterUrl    String?
   certificatesUrl   String?
@@ -245,20 +245,19 @@ model Asset {
   id String @id @default(cuid())
   name String
   type String
-  status AssetStatus @default(AVAILABLE)
+  status String
   assignedToId String?
   assignedTo User? @relation("AssignedAssets", fields: [assignedToId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([assignedToId])
-  @@index([status])
 }
 
 model Invoice {
   id String @id @default(cuid())
   clientId String?
   amount Float
-  status InvoiceStatus @default(UNPAID)
+  status String
   dueDate DateTime
   createdAt DateTime @default(now())
   @@index([clientId])
@@ -280,10 +279,9 @@ model Domain {
   url String
   provider String
   expiryDate DateTime
-  status DomainStatus @default(ACTIVE)
+  status String
   createdAt DateTime @default(now())
   @@index([expiryDate])
-  @@index([status])
 }
 
 model FileRecord {
