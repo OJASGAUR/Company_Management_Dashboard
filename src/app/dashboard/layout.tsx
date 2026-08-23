@@ -1,13 +1,14 @@
 import Link from "next/link"
 import { ReactNode } from "react"
-import { auth, signOut } from "@/auth"
+import { signOut } from "@/auth"
 import { redirect } from "next/navigation"
+import { requireAuth } from "@/lib/auth/require-auth"
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const session = await auth()
-  if (!session?.user) redirect("/login")
+  const user = await requireAuth().catch(() => null)
+  if (!user) redirect("/")
 
-  const role = session.user.role
+  const role = user.role
   const isManagement = ["SUPER_ADMIN", "DIRECTOR", "HR", "OPERATIONS_MANAGER", "ACCOUNTS"].includes(role)
   const canManageAssets = ["SUPER_ADMIN", "DIRECTOR", "HR", "OPERATIONS_MANAGER"].includes(role)
   const canSeeFinance = ["SUPER_ADMIN", "DIRECTOR", "ACCOUNTS"].includes(role)
@@ -35,7 +36,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           {isManagement && <><p className="mb-2 mt-6 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Management</p>{["SUPER_ADMIN", "DIRECTOR", "OPERATIONS_MANAGER"].includes(role) && <Link href="/dashboard/operations" className={navClass}>Operations</Link>}{canSeeReports && <Link href="/dashboard/reports" className={navClass}>Reports & Analytics</Link>}{["SUPER_ADMIN", "DIRECTOR", "HR"].includes(role) && <Link href="/admin" className={navClass}>Admin / HR</Link>}</>}
           {!canSeeTasks && <p className="mt-6 px-4 text-xs text-slate-500">Client access is limited to shared project information.</p>}
         </nav>
-        <div className="border-t border-slate-800 p-4"><div className="mb-4 flex items-center gap-3 px-2"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold">{session.user.email?.charAt(0).toUpperCase() || "U"}</div><div className="min-w-0"><p className="truncate text-sm font-medium">{session.user.name || "User"}</p><p className="truncate text-xs text-slate-500">{role.replace(/_/g, " ")}</p></div></div><form action={async () => { "use server"; await signOut({ redirectTo: "/" }) }}><button type="submit" className="w-full rounded-lg px-4 py-2.5 text-left text-sm font-medium text-red-400 transition hover:bg-slate-800">Sign Out</button></form></div>
+        <div className="border-t border-slate-800 p-4"><div className="mb-4 flex items-center gap-3 px-2"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold">{user.email?.charAt(0).toUpperCase() || "U"}</div><div className="min-w-0"><p className="truncate text-sm font-medium">{user.name || "User"}</p><p className="truncate text-xs text-slate-500">{role.replace(/_/g, " ")}</p></div></div><form action={async () => { "use server"; await signOut({ redirectTo: "/" }) }}><button type="submit" className="w-full rounded-lg px-4 py-2.5 text-left text-sm font-medium text-red-400 transition hover:bg-slate-800">Sign Out</button></form></div>
       </aside>
       <main className="flex-1 overflow-auto p-6 md:p-8">{children}</main>
     </div>
