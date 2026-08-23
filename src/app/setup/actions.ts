@@ -25,26 +25,26 @@ export async function bootstrapAdmin(formData: FormData) {
   const existingUser = await prisma.user.findFirst({ where: { email: emailAddress }, select: { id: true } })
   if (existingUser) throw new Error("That email is already registered")
 
-  const employeeId = `ADM-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
+  const generatedEmployeeId = `ADM-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
   const created = await prisma.user.create({
     data: {
       name,
       email: emailAddress,
       password: await bcrypt.hash(password, 12),
       role: Role.SUPER_ADMIN,
-      employeeId,
+      employeeId: generatedEmployeeId,
       isActive: true,
       onboardingStatus: "COMPLETED",
     },
-    select: { id: true, employeeId: true },
+    select: { id: true },
   })
 
   await recordAudit({
     action: "BOOTSTRAP_ADMIN",
     entity: "User",
     entityId: created.id,
-    metadata: { employeeId: created.employeeId },
+    metadata: { employeeId: generatedEmployeeId },
   })
 
-  redirect(`/?bootstrap=success&employeeId=${encodeURIComponent(created.employeeId)}`)
+  redirect(`/?bootstrap=success&employeeId=${encodeURIComponent(generatedEmployeeId)}`)
 }
