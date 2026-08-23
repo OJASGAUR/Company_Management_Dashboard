@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { createProject } from "../actions"
 import { requireRole } from "@/lib/auth/require-role"
 import { Role } from "@prisma/client"
+import type { ReactNode } from "react"
 
 export default async function ProjectsPage() {
   const user = await requireRole([Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.TEAM_LEAD, Role.DEVELOPER, Role.DESIGNER, Role.TESTER])
@@ -17,4 +18,4 @@ export default async function ProjectsPage() {
   )
 }
 
-function Field({ label, children, wide = false }: { label: string; children: React.ReactNode; wide?: boolean }) { return <label className={`space-y-1.5 ${wide ? "md:col-span-3" : ""}`}><span className="block text-sm font-medium text-slate-700">{label}</span>{children}</label> }
+function Field({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) { return <label className={`space-y-1.5 ${wide ? "md:col-span-3" : ""}`}><span className="block text-sm font-medium text-slate-700">{label}</span>{children}</label> }
