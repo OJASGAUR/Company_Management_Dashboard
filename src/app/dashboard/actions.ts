@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
 import bcrypt from 'bcryptjs'
+import { sendNotificationEmail } from "@/lib/email"
 
 export async function getDashboardStats() {
   const session = await auth()
@@ -311,3 +312,173 @@ export async function createTask(formData: FormData) {
 
   revalidatePath('/dashboard/tasks')
 }
+
+export async function getNotifications() {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  return prisma.notification.findMany({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: 'desc' }
+  })
+}
+
+export async function getUnreadNotificationCount() {
+  const session = await auth()
+  if (!session?.user?.id) return 0
+
+  return prisma.notification.count({
+    where: { userId: session.user.id, read: false }
+  })
+}
+
+export async function markNotificationAsRead(notificationId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  await prisma.notification.update({
+    where: { id: notificationId, userId: session.user.id },
+    data: { read: true }
+  })
+
+  revalidatePath('/dashboard/notifications')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function markAllNotificationsAsRead() {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  await prisma.notification.updateMany({
+    where: { userId: session.user.id, read: false },
+    data: { read: true }
+  })
+
+  revalidatePath('/dashboard/notifications')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function deleteNotification(notificationId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  await prisma.notification.delete({
+    where: { id: notificationId, userId: session.user.id }
+  })
+
+  revalidatePath('/dashboard/notifications')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function createNotification({
+  userId,
+  title,
+  message,
+  type = "INFO",
+  link
+}: {
+  userId: string
+  title: string
+  message: string
+  type?: string
+  link?: string
+}) {
+  const notification = await prisma.notification.create({
+    data: {
+      userId,
+      title,
+      message,
+      type,
+      link,
+      read: false
+    }
+  })
+
+  // Lookup employee email address and dispatch email notification
+  try {
+    const recipient = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, name: true }
+    })
+
+    if (recipient?.email) {
+      await sendNotificationEmail({
+        toEmail: recipient.email,
+        recipientName: recipient.name || "Team Member",
+        title,
+        message,
+        type,
+        link
+      })
+    }
+  } catch (error) {
+    console.error("[NOTIFICATION EMAIL ERROR]", error)
+  }
+
+  return notification
+}
+
+export async function broadcastNotificationToAll(formData: FormData) {
+  const session = await auth()
+  if (!session?.user) throw new Error("Unauthorized")
+
+  // Only Management / HR can broadcast announcements
+  if (!["SUPER_ADMIN", "DIRECTOR", "HR", "OPERATIONS_MANAGER"].includes(session.user.role)) {
+    throw new Error("Unauthorized: Only admins and managers can broadcast announcements")
+  }
+
+  const title = formData.get("title") as string
+  const message = formData.get("message") as string
+  const type = (formData.get("type") as string) || "INFO"
+  const link = (formData.get("link") as string) || "/dashboard"
+
+  if (!title || !message) {
+    throw new Error("Title and message are required")
+  }
+
+  // Fetch all registered employees with valid email addresses
+  const allUsers = await prisma.user.findMany({
+    select: { id: true, email: true, name: true }
+  })
+
+  console.log(`[BROADCAST] Sending notification & email to ${allUsers.length} employees...`)
+
+  // Bulk create in-app notifications
+  await prisma.notification.createMany({
+    data: allUsers.map((u) => ({
+      userId: u.id,
+      title,
+      message,
+      type,
+      link,
+      read: false
+    }))
+  })
+
+  // Dispatch emails to each employee
+  for (const user of allUsers) {
+    if (user.email) {
+      try {
+        await sendNotificationEmail({
+          toEmail: user.email,
+          recipientName: user.name || "Team Member",
+          title,
+          message,
+          type,
+          link
+        })
+      } catch (err) {
+        console.error(`Failed to send broadcast email to ${user.email}:`, err)
+      }
+    }
+  }
+
+  revalidatePath('/dashboard/notifications')
+  revalidatePath('/dashboard')
+  return { success: true, totalSent: allUsers.length }
+}
+
+

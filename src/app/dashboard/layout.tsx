@@ -2,13 +2,18 @@ import Link from "next/link"
 import { ReactNode } from "react"
 import { auth, signOut } from "@/auth"
 import { redirect } from "next/navigation"
+import { prisma } from "@/lib/prisma"
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await auth()
   
   if (!session?.user) {
-    redirect("/login")
+    redirect("/")
   }
+
+  const unreadCount = await prisma.notification.count({
+    where: { userId: session.user.id, read: false }
+  })
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900">
@@ -21,6 +26,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <nav className="flex-1 px-4 py-4 space-y-2">
           <Link href="/dashboard" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
             Dashboard
+          </Link>
+          <Link href="/dashboard/notifications" className="flex items-center justify-between px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
+            <span>Notifications</span>
+            {unreadCount > 0 && (
+              <span className="bg-blue-600 text-white text-xs font-extrabold px-2 py-0.5 rounded-full">
+                {unreadCount}
+              </span>
+            )}
           </Link>
           <Link href="/dashboard/attendance" className="block px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
             Attendance
