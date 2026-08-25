@@ -22,7 +22,7 @@ async function main() {
     { id: 'OPS4001', email: 'operations@company.com', name: 'Operations Manager', role: 'OPERATIONS_MANAGER', plainPass: 'OpsCommand#9' },
     { id: 'TL90871', email: 'tl@company.com', name: 'Team Lead', role: 'TEAM_LEAD', plainPass: 'LeadTheWay1' },
     { id: 'ACC8001', email: 'accounts@company.com', name: 'Finance Accounts', role: 'ACCOUNTS', plainPass: 'Finance2026$' },
-    { id: 'DEV5001', email: 'developer@company.com', name: 'Senior Developer', role: 'DEVELOPER', plainPass: 'CodeMaster99' },
+    { id: 'DEV5001', email: 'kharanshu17@gmail.com', name: 'Senior Developer', role: 'DEVELOPER', plainPass: 'CodeMaster99' },
     { id: 'DES6001', email: 'designer@company.com', name: 'UI/UX Designer', role: 'DESIGNER', plainPass: 'PixelPerfect!' },
     { id: 'QA70001', email: 'tester@company.com', name: 'QA Tester', role: 'TESTER', plainPass: 'BugHunter202' },
     { id: 'EMP1001', email: 'employee@company.com', name: 'Regular Employee 1', role: 'EMPLOYEE', plainPass: 'EmpPass1001' },
