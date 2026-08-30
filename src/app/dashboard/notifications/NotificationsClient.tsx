@@ -3,7 +3,13 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, broadcastNotificationToAll } from "../actions"
+import { 
+  markNotificationAsRead, 
+  markAllNotificationsAsRead, 
+  deleteNotification, 
+  broadcastNotificationToAll,
+  updateNotificationPreferences
+} from "../actions"
 
 export type NotificationItem = {
   id: string
@@ -16,19 +22,29 @@ export type NotificationItem = {
   createdAt: string | Date
 }
 
+export type UserPreferences = {
+  emailTasks: boolean
+  emailLeaves: boolean
+  emailAnnouncements: boolean
+}
+
 export default function NotificationsClient({
   initialNotifications,
   userRole = "EMPLOYEE",
-  userEmail = ""
+  userEmail = "",
+  userPreferences
 }: {
   initialNotifications: NotificationItem[]
   userRole?: string
   userEmail?: string
+  userPreferences?: UserPreferences
 }) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications)
   const [activeTab, setActiveTab] = useState<"ALL" | "UNREAD" | "TASK" | "LEAVE" | "ALERT">("ALL")
   const [isMarkingAll, setIsMarkingAll] = useState(false)
   const [showBroadcastModal, setShowBroadcastModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
   const [isBroadcasting, setIsBroadcasting] = useState(false)
   const [broadcastSuccessMsg, setBroadcastSuccessMsg] = useState("")
 
@@ -97,6 +113,22 @@ export default function NotificationsClient({
       alert(err.message || "Failed to broadcast announcement")
     } finally {
       setIsBroadcasting(false)
+    }
+  }
+
+  const handleSettingsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSavingSettings(true)
+    const formData = new FormData(e.currentTarget)
+    try {
+      const res = await updateNotificationPreferences(formData)
+      if (res?.success) {
+        setShowSettingsModal(false)
+      }
+    } catch (err: any) {
+      alert("Failed to save preferences.")
+    } finally {
+      setIsSavingSettings(false)
     }
   }
 
@@ -183,14 +215,23 @@ export default function NotificationsClient({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95"
+          >
+            <span>⚙️</span>
+            <span className="hidden sm:inline">Settings</span>
+          </button>
+
           {canBroadcast && (
             <button
               onClick={() => setShowBroadcastModal(true)}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md shadow-blue-500/20 transition-all active:scale-95"
             >
               <span>📢</span>
-              <span>Broadcast Email to All</span>
+              <span className="hidden sm:inline">Broadcast Email to All</span>
+              <span className="sm:hidden">Broadcast</span>
             </button>
           )}
 
@@ -276,7 +317,7 @@ export default function NotificationsClient({
                       {!notification.read && (
                         <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
                       )}
-                      <span className="text-xs text-slate-400 font-medium ml-auto sm:ml-0">
+                      <span suppressHydrationWarning className="text-xs text-slate-400 font-medium ml-auto sm:ml-0">
                         {formatTimestamp(notification.createdAt)}
                       </span>
                     </div>
@@ -345,6 +386,92 @@ export default function NotificationsClient({
           </div>
         )}
       </div>
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-8 overflow-hidden"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xl font-bold">
+                  ⚙️
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Notification Settings</h2>
+                  <p className="text-xs text-slate-500">Manage your email alerts</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSettingsSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <p className="text-sm font-semibold text-slate-700">Receive emails for:</p>
+
+                <label className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📝</span>
+                    <div>
+                      <div className="font-bold text-sm text-slate-800">Tasks & Projects</div>
+                      <div className="text-xs text-slate-500">When you are assigned new tasks</div>
+                    </div>
+                  </div>
+                  <input type="checkbox" name="emailTasks" defaultChecked={userPreferences?.emailTasks} className="w-5 h-5 accent-blue-600 rounded cursor-pointer" />
+                </label>
+
+                <label className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🏖️</span>
+                    <div>
+                      <div className="font-bold text-sm text-slate-800">Leaves & HR</div>
+                      <div className="text-xs text-slate-500">Updates on your leave requests</div>
+                    </div>
+                  </div>
+                  <input type="checkbox" name="emailLeaves" defaultChecked={userPreferences?.emailLeaves} className="w-5 h-5 accent-blue-600 rounded cursor-pointer" />
+                </label>
+
+                <label className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📢</span>
+                    <div>
+                      <div className="font-bold text-sm text-slate-800">Company Announcements</div>
+                      <div className="text-xs text-slate-500">Important broadcasts from management</div>
+                    </div>
+                  </div>
+                  <input type="checkbox" name="emailAnnouncements" defaultChecked={userPreferences?.emailAnnouncements} className="w-5 h-5 accent-blue-600 rounded cursor-pointer" />
+                </label>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingSettings}
+                  className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {isSavingSettings ? "Saving..." : "Save Preferences"}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
       {/* Broadcast Modal (Admins / HR / Managers) */}
       {showBroadcastModal && (

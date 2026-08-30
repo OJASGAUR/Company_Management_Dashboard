@@ -53,8 +53,13 @@ model User {
   assignedAssets Asset[]  @relation("AssignedAssets")
   notifications Notification[]
   
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  // Notification Preferences
+  emailTasks         Boolean @default(true)
+  emailLeaves        Boolean @default(true)
+  emailAnnouncements Boolean @default(true)
 }
 
 model Attendance {

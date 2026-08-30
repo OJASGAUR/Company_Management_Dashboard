@@ -373,6 +373,23 @@ export async function deleteNotification(notificationId: string) {
   return { success: true }
 }
 
+export async function updateNotificationPreferences(formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.email) throw new Error("Unauthorized")
+
+  const emailTasks = formData.get("emailTasks") === "on"
+  const emailLeaves = formData.get("emailLeaves") === "on"
+  const emailAnnouncements = formData.get("emailAnnouncements") === "on"
+
+  await prisma.user.update({
+    where: { email: session.user.email },
+    data: { emailTasks, emailLeaves, emailAnnouncements }
+  })
+
+  revalidatePath('/dashboard/notifications')
+  return { success: true }
+}
+
 export async function createNotification({
   userId,
   title,
@@ -401,18 +418,25 @@ export async function createNotification({
   try {
     const recipient = await prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, name: true }
+      select: { email: true, name: true, emailTasks: true, emailLeaves: true, emailAnnouncements: true }
     })
 
     if (recipient?.email) {
-      await sendNotificationEmail({
-        toEmail: recipient.email,
-        recipientName: recipient.name || "Team Member",
-        title,
-        message,
-        type,
-        link
-      })
+      let shouldSend = true;
+      if (type === "TASK" && !recipient.emailTasks) shouldSend = false;
+      else if (type === "LEAVE" && !recipient.emailLeaves) shouldSend = false;
+      else if (["INFO", "ALERT", "SUCCESS"].includes(type) && !recipient.emailAnnouncements) shouldSend = false;
+
+      if (shouldSend) {
+        await sendNotificationEmail({
+          toEmail: recipient.email,
+          recipientName: recipient.name || "Team Member",
+          title,
+          message,
+          type,
+          link
+        })
+      }
     }
   } catch (error) {
     console.error("[NOTIFICATION EMAIL ERROR]", error)
@@ -439,12 +463,12 @@ export async function broadcastNotificationToAll(formData: FormData) {
     throw new Error("Title and message are required")
   }
 
-  // Fetch all registered employees with valid email addresses
+  // Fetch all registered employees with valid email addresses and their preferences
   const allUsers = await prisma.user.findMany({
-    select: { id: true, email: true, name: true }
+    select: { id: true, email: true, name: true, emailAnnouncements: true }
   })
 
-  console.log(`[BROADCAST] Sending notification & email to ${allUsers.length} employees...`)
+  console.log(`[BROADCAST] Sending notification to ${allUsers.length} employees...`)
 
   // Bulk create in-app notifications
   await prisma.notification.createMany({
@@ -460,7 +484,7 @@ export async function broadcastNotificationToAll(formData: FormData) {
 
   // Dispatch emails to each employee
   for (const user of allUsers) {
-    if (user.email) {
+    if (user.email && user.emailAnnouncements) {
       try {
         await sendNotificationEmail({
           toEmail: user.email,
