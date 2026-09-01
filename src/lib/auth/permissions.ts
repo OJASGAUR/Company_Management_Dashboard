@@ -7,7 +7,7 @@ import { Role } from "@prisma/client"
 export const permissions: Record<string, Role[]> = {
   manageUsers: [Role.SUPER_ADMIN, Role.HR],
   manageProjects: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER],
-  assignTasks: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.TEAM_LEAD],
+  assignTasks: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.TEAM_LEAD, Role.DEVELOPER],
   approveLeaves: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR],
   manageFinance: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.ACCOUNTS],
   manageClients: [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS],
