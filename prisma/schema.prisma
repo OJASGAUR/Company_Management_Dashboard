@@ -76,6 +76,10 @@ model User {
   notifications     Notification[]
   auditLogs         AuditLog[]       @relation("AuditActor")
 
+  emailTasks         Boolean @default(true)
+  emailLeaves        Boolean @default(true)
+  emailAnnouncements Boolean @default(true)
+
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -241,6 +245,8 @@ model Notification {
   userId String
   title String
   body String
+  type String @default("INFO")
+  link String?
   readAt DateTime?
   createdAt DateTime @default(now())
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
