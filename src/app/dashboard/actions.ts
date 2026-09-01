@@ -7,6 +7,7 @@ import { permissions } from "@/lib/auth/permissions"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
 import { Role } from "@prisma/client"
+import { sendNotificationEmail } from "@/lib/email"
 import { date, email, enumValue, id, optionalDate, optionalString, requiredString } from "@/lib/validation"
 
 const TASK_STATUSES = ["TODO", "IN_PROGRESS", "IN_REVIEW", "COMPLETED"] as const
@@ -15,6 +16,8 @@ const LEAVE_TYPES = ["CASUAL", "SICK", "PAID", "LOSS_OF_PAY"] as const
 const LEAVE_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const
 const MANAGER_ROLES: Role[] = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR, Role.OPERATIONS_MANAGER, Role.TEAM_LEAD]
 const ALL_ROLES: Role[] = Object.values(Role) as Role[]
+const BROADCAST_ROLES: Role[] = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR, Role.OPERATIONS_MANAGER]
+const NOTIFICATION_TYPES = ["INFO", "WARNING", "SUCCESS", "ALERT", "TASK", "LEAVE"] as const
 
 export async function getDashboardStats() {
   const user = await requireAuth()
@@ -123,4 +126,164 @@ export async function createTask(formData: FormData) {
   const title = requiredString(formData.get("title"), "Title", 200), description = optionalString(formData.get("description"), 5000)
   const priority = enumValue(formData.get("priority") || "MEDIUM", "Priority", TASK_PRIORITIES)
   await prisma.task.create({ data: { title, description, priority, userId: user.id, status: "TODO" } }); revalidatePath("/dashboard/tasks")
+}
+
+export async function getNotifications() {
+  const user = await requireAuth()
+  return prisma.notification.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  })
+}
+
+export async function getUnreadNotificationCount() {
+  const user = await requireAuth()
+  return prisma.notification.count({ where: { userId: user.id, readAt: null } })
+}
+
+export async function markNotificationAsRead(notificationId: string) {
+  const user = await requireAuth()
+  const safeId = id(notificationId, "Notification ID")
+  await prisma.notification.updateMany({
+    where: { id: safeId, userId: user.id },
+    data: { readAt: new Date() },
+  })
+  revalidatePath("/dashboard/notifications")
+  revalidatePath("/dashboard")
+  return { success: true }
+}
+
+export async function markAllNotificationsAsRead() {
+  const user = await requireAuth()
+  await prisma.notification.updateMany({
+    where: { userId: user.id, readAt: null },
+    data: { readAt: new Date() },
+  })
+  revalidatePath("/dashboard/notifications")
+  revalidatePath("/dashboard")
+  return { success: true }
+}
+
+export async function deleteNotification(notificationId: string) {
+  const user = await requireAuth()
+  const safeId = id(notificationId, "Notification ID")
+  await prisma.notification.deleteMany({ where: { id: safeId, userId: user.id } })
+  revalidatePath("/dashboard/notifications")
+  revalidatePath("/dashboard")
+  return { success: true }
+}
+
+export async function updateNotificationPreferences(formData: FormData) {
+  const user = await requireAuth()
+  const emailTasks = formData.get("emailTasks") === "on"
+  const emailLeaves = formData.get("emailLeaves") === "on"
+  const emailAnnouncements = formData.get("emailAnnouncements") === "on"
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { emailTasks, emailLeaves, emailAnnouncements },
+  })
+
+  revalidatePath("/dashboard/notifications")
+  return { success: true }
+}
+
+export async function createNotification({
+  userId,
+  title,
+  message,
+  type = "INFO",
+  link,
+}: {
+  userId: string
+  title: string
+  message: string
+  type?: string
+  link?: string | null
+}) {
+  await requireAuth()
+  const safeUserId = id(userId, "User ID")
+  const safeTitle = requiredString(title, "Notification title", 200)
+  const safeMessage = requiredString(message, "Notification message", 4000)
+  const safeType = enumValue(type, "Notification type", NOTIFICATION_TYPES)
+
+  const recipient = await prisma.user.findUnique({
+    where: { id: safeUserId },
+    select: { id: true, name: true, email: true, isActive: true, emailTasks: true, emailLeaves: true, emailAnnouncements: true },
+  })
+  if (!recipient || !recipient.isActive) throw new Error("Notification recipient is unavailable")
+
+  const notification = await prisma.notification.create({
+    data: {
+      userId: recipient.id,
+      title: safeTitle,
+      body: safeMessage,
+      type: safeType,
+      link: link || null,
+    },
+  })
+
+  let shouldSendEmail = true
+  if (safeType === "TASK") shouldSendEmail = recipient.emailTasks
+  else if (safeType === "LEAVE") shouldSendEmail = recipient.emailLeaves
+  else shouldSendEmail = recipient.emailAnnouncements
+
+  if (recipient.email && shouldSendEmail) {
+    await sendNotificationEmail({
+      toEmail: recipient.email,
+      recipientName: recipient.name,
+      title: safeTitle,
+      message: safeMessage,
+      type: safeType,
+      link: link || null,
+    })
+  }
+
+  return { success: true, notificationId: notification.id }
+}
+
+export async function broadcastNotificationToAll(formData: FormData) {
+  const actor = await requireAuth()
+  if (!BROADCAST_ROLES.includes(actor.role)) throw new Error("Only management roles can broadcast notifications")
+
+  const title = requiredString(formData.get("title"), "Title", 200)
+  const message = requiredString(formData.get("message"), "Message", 4000)
+  const type = enumValue(formData.get("type") || "INFO", "Notification type", NOTIFICATION_TYPES)
+  const link = optionalString(formData.get("link"), 500)
+
+  const users = await prisma.user.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, email: true, emailTasks: true, emailLeaves: true, emailAnnouncements: true },
+  })
+
+  await prisma.notification.createMany({
+    data: users.map((user) => ({ userId: user.id, title, body: message, type, link: link || null })),
+  })
+
+  for (const user of users) {
+    let shouldSendEmail = true
+    if (type === "TASK") shouldSendEmail = user.emailTasks
+    else if (type === "LEAVE") shouldSendEmail = user.emailLeaves
+    else shouldSendEmail = user.emailAnnouncements
+
+    if (user.email && shouldSendEmail) {
+      try {
+        await sendNotificationEmail({
+          toEmail: user.email,
+          recipientName: user.name,
+          title,
+          message,
+          type,
+          link: link || null,
+        })
+      } catch (error) {
+        console.error(`[NOTIFICATION EMAIL ERROR] ${user.email}`, error)
+      }
+    }
+  }
+
+  revalidatePath("/dashboard/notifications")
+  revalidatePath("/dashboard")
+  return { success: true, totalSent: users.length }
 }
