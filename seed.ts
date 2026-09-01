@@ -35,8 +35,8 @@ async function main() {
   for (const u of presentationUsers) {
     const hashedPassword = await bcrypt.hash(u.plainPass, 10)
     const user = await prisma.user.upsert({
-      where: { email: u.email },
-      update: { employeeId: u.id, role: u.role as any, password: hashedPassword, name: u.name },
+      where: { employeeId: u.id },
+      update: { email: u.email, role: u.role as any, password: hashedPassword, name: u.name },
       create: { employeeId: u.id, email: u.email, name: u.name, password: hashedPassword, role: u.role as any }
     })
     userIds[u.role] = user.id
