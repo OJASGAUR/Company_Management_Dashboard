@@ -16,7 +16,7 @@ async function main() {
   await prisma.domain.deleteMany({})
 
   const presentationUsers = [
-    { id: 'SA00001', email: 'admin@company.com', name: 'Super Admin', role: 'SUPER_ADMIN', plainPass: 'SuperSecret123!' },
+    { id: 'SA00001', email: 'ojasgaur.dev@gmail.com', name: 'Super Admin', role: 'SUPER_ADMIN', plainPass: 'SuperSecret123!' },
     { id: 'DIR1001', email: 'director@company.com', name: 'Director', role: 'DIRECTOR', plainPass: 'DirectorPass2026' },
     { id: 'HR23894', email: 'hr@company.com', name: 'HR Manager', role: 'HR', plainPass: 'HRsecure$44' },
     { id: 'OPS4001', email: 'operations@company.com', name: 'Operations Manager', role: 'OPERATIONS_MANAGER', plainPass: 'OpsCommand#9' },
@@ -25,7 +25,7 @@ async function main() {
     { id: 'DEV5001', email: 'developer@company.com', name: 'Senior Developer', role: 'DEVELOPER', plainPass: 'CodeMaster99' },
     { id: 'DES6001', email: 'designer@company.com', name: 'UI/UX Designer', role: 'DESIGNER', plainPass: 'PixelPerfect!' },
     { id: 'QA70001', email: 'tester@company.com', name: 'QA Tester', role: 'TESTER', plainPass: 'BugHunter202' },
-    { id: 'EMP1001', email: 'employee@company.com', name: 'Regular Employee 1', role: 'EMPLOYEE', plainPass: 'EmpPass1001' },
+    { id: 'EMP1001', email: 'ojas.gaur2025@vitstudent.ac.in', name: 'Regular Employee 1', role: 'EMPLOYEE', plainPass: 'EmpPass1001' },
     { id: 'EMP1002', email: 'emp2@company.com', name: 'Regular Employee 2', role: 'EMPLOYEE', plainPass: 'EmpPass1002' },
   ]
 
