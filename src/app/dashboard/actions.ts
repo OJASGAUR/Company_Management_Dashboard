@@ -87,11 +87,20 @@ export async function assignTask(formData: FormData) {
   const projectIdRaw = optionalString(formData.get("projectId"), 100), userId = id(requiredString(formData.get("userId"), "Assignee"), "Assignee")
   const priority = enumValue(formData.get("priority") || "MEDIUM", "Priority", TASK_PRIORITIES)
   const deadline = optionalDate(formData.get("deadline"), "Deadline"), description = optionalString(formData.get("description"), 5000)
-  const assignee = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, isActive: true } })
+  const assignee = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true, email: true, isActive: true } })
   if (!assignee || !assignee.isActive) throw new Error("Assignee not found or inactive")
   const projectId = projectIdRaw ? id(projectIdRaw, "Project ID") : null
   if (projectId && !(await prisma.project.findUnique({ where: { id: projectId }, select: { id: true } }))) throw new Error("Project not found")
   await prisma.task.create({ data: { title, description, priority, deadline, userId, assignedById: actor.id, projectId, status: "TODO" } })
+
+  await createNotification({
+    userId: assignee.id,
+    title: `New task assigned: ${title}`,
+    message: `You have been assigned a new ${priority.toLowerCase()} priority task.${deadline ? ` Deadline: ${deadline.toLocaleDateString()}.` : ""}${description ? ` ${description}` : ""}`,
+    type: "TASK",
+    link: "/dashboard/tasks",
+  })
+
   revalidatePath("/dashboard/operations"); revalidatePath("/dashboard/tasks")
 }
 
@@ -108,7 +117,25 @@ export async function createEmployee(formData: FormData) {
 export async function updateLeaveStatus(formData: FormData) {
   await requireRole(permissions.approveLeaves)
   const leaveId = id(requiredString(formData.get("leaveId"), "Leave ID"), "Leave ID"), status = enumValue(formData.get("status"), "Leave status", LEAVE_STATUSES)
+  const leave = await prisma.leave.findUnique({
+    where: { id: leaveId },
+    select: { userId: true, type: true, startDate: true, endDate: true, user: { select: { id: true, isActive: true } } },
+  })
+  if (!leave) throw new Error("Leave request not found")
+
   await prisma.leave.update({ where: { id: leaveId }, data: { status } })
+
+  if (leave.user.isActive) {
+    const statusLabel = status === "APPROVED" ? "approved" : "rejected"
+    await createNotification({
+      userId: leave.userId,
+      title: `Leave request ${statusLabel}`,
+      message: `Your ${leave.type.toLowerCase()} leave request from ${leave.startDate.toLocaleDateString()} to ${leave.endDate.toLocaleDateString()} has been ${statusLabel}.`,
+      type: "LEAVE",
+      link: "/dashboard/leaves",
+    })
+  }
+
   revalidatePath("/dashboard/leaves"); revalidatePath("/dashboard")
 }
 
