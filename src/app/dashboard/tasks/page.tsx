@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card"
 import { FormField, Input, Select } from "@/components/ui/FormField"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import { RemoveButton } from "@/components/ui/RemoveButton"
+import CalendarBar from "./CalendarBar"
 
 interface Task {
   id: string
@@ -54,7 +55,6 @@ export default function TasksPage() {
     setActiveDragId(null)
     if (!taskId) return
 
-    // Optimistic UI update
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status } : t)))
 
     try {
@@ -72,7 +72,6 @@ export default function TasksPage() {
 
   const handleDeleteTask = async (taskId: string) => {
     setDeletingId(taskId)
-    // Optimistic update
     setTasks((prev) => prev.filter((t) => t.id !== taskId))
     try {
       await deleteTask(taskId)
@@ -102,7 +101,8 @@ export default function TasksPage() {
         }
       />
 
-      {/* New Task Inline Drawer */}
+      <CalendarBar />
+
       <AnimatePresence>
         {showNewTask && (
           <motion.div
@@ -119,7 +119,7 @@ export default function TasksPage() {
                   const newTasks = await getTasks()
                   setTasks(newTasks as Task[])
                 }}
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end"
+                className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-4"
               >
                 <FormField label="Task Title" required>
                   <Input name="title" required placeholder="e.g. Design Landing Hero" />
@@ -149,13 +149,12 @@ export default function TasksPage() {
         )}
       </AnimatePresence>
 
-      {/* Kanban Board Columns */}
       {loading ? (
         <div className="flex h-80 items-center justify-center text-slate-400 text-sm">
           Loading Kanban board...
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4 items-start">
+        <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-2 lg:grid-cols-4">
           {COLUMNS.map((col) => {
             const columnTasks = tasks.filter((t) => t.status === col.id)
             return (
@@ -163,17 +162,15 @@ export default function TasksPage() {
                 key={col.id}
                 onDrop={(e) => handleDrop(e, col.id)}
                 onDragOver={handleDragOver}
-                className={`flex flex-col rounded-2xl border ${col.color} bg-slate-100/70 p-4 transition-colors min-h-[480px] shadow-sm`}
+                className={`flex min-h-[480px] flex-col rounded-2xl border ${col.color} bg-slate-100/70 p-4 shadow-sm transition-colors`}
               >
-                {/* Column Header */}
                 <div className="mb-4 flex items-center justify-between px-1">
                   <h3 className="text-sm font-bold text-slate-800">{col.label}</h3>
-                  <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-white px-2 text-xs font-bold text-slate-600 shadow-sm border border-slate-200">
+                  <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 shadow-sm">
                     {columnTasks.length}
                   </span>
                 </div>
 
-                {/* Cards Container */}
                 <div className="flex-1 space-y-3">
                   <AnimatePresence>
                     {columnTasks.map((task) => (
@@ -185,20 +182,20 @@ export default function TasksPage() {
                         exit={{ opacity: 0, scale: 0.95 }}
                         draggable
                         onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, task.id)}
-                        onDragEnd={() => setActiveDragId(null)}
+                        onDragEnd={handleDragEnd}
                         className={`group relative cursor-grab rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md active:cursor-grabbing ${
                           activeDragId === task.id ? "opacity-40" : "opacity-100"
                         } ${deletingId === task.id ? "pointer-events-none opacity-50" : ""}`}
                       >
                         <RemoveButton onRemove={() => handleDeleteTask(task.id)} title="Remove task" />
-                        <div className="flex items-start justify-between gap-2 mb-2 pr-6">
+                        <div className="mb-2 flex items-start justify-between gap-2 pr-6">
                           <StatusBadge status={task.priority} size="sm" />
                         </div>
-                        <h4 className="text-sm font-bold text-slate-900 leading-snug">
+                        <h4 className="text-sm font-bold leading-snug text-slate-900">
                           {task.title}
                         </h4>
                         {task.description && (
-                          <p className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">
                             {task.description}
                           </p>
                         )}
