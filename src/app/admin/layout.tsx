@@ -1,9 +1,9 @@
-import Link from "next/link"
 import { ReactNode } from "react"
 import { signOut } from "@/auth"
 import { redirect } from "next/navigation"
 import { Role } from "@prisma/client"
 import { requireAuth } from "@/lib/auth/require-auth"
+import { AdminSidebar } from "@/components/layout/AdminSidebar"
 
 const ADMIN_ROLES = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR] as const
 
@@ -12,19 +12,25 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   if (!user) redirect("/dashboard")
   if (!ADMIN_ROLES.includes(user.role as typeof ADMIN_ROLES[number])) redirect("/dashboard")
 
+  async function handleSignOut() {
+    "use server"
+    await signOut({ redirectTo: "/" })
+  }
+
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900">
-      <aside className="flex w-72 flex-col bg-slate-950 text-white">
-        <div className="border-b border-slate-800 p-6"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">Administration</p><h2 className="mt-1 text-2xl font-bold tracking-tight">Admin Panel</h2></div>
-        <nav className="flex-1 space-y-1 px-4 py-5">
-          <Link href="/dashboard" className="block rounded-lg px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white">← Back to Dashboard</Link>
-          <p className="mb-2 mt-6 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">People</p>
-          <Link href="/admin/users" className="block rounded-lg px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white">User Management</Link>
-          {user.role === Role.SUPER_ADMIN && <><p className="mb-2 mt-6 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Security</p><Link href="/admin/audit" className="block rounded-lg px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white">Audit Log</Link></>}
-        </nav>
-        <div className="border-t border-slate-800 p-4"><div className="mb-4 flex items-center gap-3 px-2"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold">{user.email?.charAt(0).toUpperCase() || "U"}</div><div className="min-w-0"><p className="truncate text-sm font-medium">{user.name || "User"}</p><p className="truncate text-xs text-slate-500">{user.role.replace(/_/g, " ")}</p></div></div><form action={async () => { "use server"; await signOut({ redirectTo: "/" }) }}><button type="submit" className="w-full rounded-lg px-4 py-2.5 text-left text-sm font-medium text-red-400 hover:bg-slate-800">Sign Out</button></form></div>
-      </aside>
-      <main className="flex-1 overflow-auto p-6 md:p-8">{children}</main>
+    <div className="flex min-h-screen flex-col lg:flex-row bg-slate-50 text-slate-900">
+      <AdminSidebar
+        user={{
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        }}
+        signOutAction={handleSignOut}
+      />
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
+        {children}
+      </main>
     </div>
   )
 }

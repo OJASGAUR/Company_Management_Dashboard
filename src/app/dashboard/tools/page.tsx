@@ -2,11 +2,21 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { requireRole } from "@/lib/auth/require-role"
 import { Role } from "@prisma/client"
-import type { ReactNode } from "react"
 import ToolsActions from "./ToolsActions"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { Card } from "@/components/ui/Card"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { Button } from "@/components/ui/Button"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 export default async function ExternalToolsPage() {
-  const user = await requireRole([Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS])
+  const user = await requireRole([
+    Role.SUPER_ADMIN,
+    Role.DIRECTOR,
+    Role.OPERATIONS_MANAGER,
+    Role.ACCOUNTS,
+  ])
+
   const [invoices, clients, domains, files] = await Promise.all([
     prisma.invoice.findMany({ take: 8, orderBy: { createdAt: "desc" } }),
     prisma.client.findMany({ take: 50, orderBy: { createdAt: "desc" } }),
@@ -14,24 +24,182 @@ export default async function ExternalToolsPage() {
     prisma.fileRecord.findMany({ take: 8, orderBy: { createdAt: "desc" } }),
   ])
 
-  const clientManagementRoles: Role[] = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS]
+  const clientManagementRoles: Role[] = [
+    Role.SUPER_ADMIN,
+    Role.DIRECTOR,
+    Role.OPERATIONS_MANAGER,
+    Role.ACCOUNTS,
+  ]
   const financeManagementRoles: Role[] = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.ACCOUNTS]
   const canManageClients = clientManagementRoles.includes(user.role)
   const canManageFinance = financeManagementRoles.includes(user.role)
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Business Operations</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Finance & External Tools</h1><p className="mt-2 text-sm text-slate-500">CRM, client portals, invoices, domains and document-storage foundations.</p></div>{canManageClients && <Link href="/dashboard/tools/clients" className="rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-800">Client Portal Management</Link>}</div>
+    <div className="mx-auto max-w-7xl space-y-8 font-sans">
+      <PageHeader
+        category="Business & Finance"
+        title="Finance, CRM & Digital Assets"
+        description="Manage customer accounts, client invoices, domain infrastructure, and secure document records."
+        actions={
+          canManageClients ? (
+            <Link href="/dashboard/tools/clients">
+              <Button variant="primary" size="md" className="bg-cyan-600 hover:bg-cyan-700">
+                Client Portal Management →
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
+
+      {/* Quick Action Cards */}
       {(canManageClients || canManageFinance) && <ToolsActions clients={clients} />}
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-        <Panel title="Accounts & Invoices" action={canManageFinance ? "Create above" : undefined}>{invoices.length ? <ul className="divide-y divide-slate-100">{invoices.map(inv => <li key={inv.id} className="flex items-center justify-between p-4"><div><p className="font-medium text-slate-900">Invoice #{inv.id.slice(-5).toUpperCase()}</p><p className="text-xs text-slate-500">Due: {inv.dueDate.toLocaleDateString()}</p></div><div className="text-right"><p className="font-semibold text-slate-900">₹{inv.amount.toLocaleString()}</p><span className={`text-[10px] rounded-full px-2 py-0.5 font-bold ${inv.status === "PAID" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>{inv.status}</span></div></li>)}</ul> : <Empty text="No invoices found." />}</Panel>
-        <Panel title="Client Management / CRM" action={canManageClients ? "Create above" : undefined}>{clients.length ? <ul className="divide-y divide-slate-100">{clients.slice(0, 8).map(client => <li key={client.id} className="flex items-center gap-4 p-4"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">{client.name.charAt(0).toUpperCase()}</div><div><p className="font-medium text-slate-900">{client.name}</p><p className="text-xs text-slate-500">{client.company} · {client.email}</p></div></li>)}</ul> : <Empty text="No clients found in CRM." />}</Panel>
-        <Panel title="Domains & Hosting"><ul className="divide-y divide-slate-100">{domains.length ? domains.map(domain => <li key={domain.id} className="flex items-center justify-between p-4"><div><p className="font-medium text-slate-900">{domain.url}</p><p className="text-xs text-slate-500">{domain.provider}</p></div><div className="text-right"><p className="text-xs text-slate-500">Expires {domain.expiryDate.toLocaleDateString()}</p><span className="text-[10px] font-bold text-slate-600">{domain.status}</span></div></li>) : <li><Empty text="No domains being tracked." /></li>}</ul></Panel>
-        <Panel title="File Storage"><ul className="divide-y divide-slate-100">{files.length ? files.map(file => <li key={file.id} className="flex items-center justify-between p-4"><div className="flex items-center gap-3"><span className="text-xl">📄</span><div><p className="font-medium text-slate-900">{file.fileName}</p><p className="text-xs text-slate-500">{(file.size / 1024).toFixed(2)} KB</p></div></div><a href={file.fileUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Open</a></li>) : <li><Empty text="No files uploaded yet." /></li>}</ul></Panel>
+
+      {/* 4 Multi-Data Panels */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Invoices Panel */}
+        <Card className="p-0 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 p-5">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Invoices & Billing</h2>
+              <p className="text-xs text-slate-500">Recent customer billing statements</p>
+            </div>
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-slate-600 border border-slate-200">
+              {invoices.length} Records
+            </span>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {invoices.length ? (
+              invoices.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors">
+                  <div>
+                    <p className="text-xs font-bold font-mono text-slate-900">
+                      #{inv.id.slice(-8).toUpperCase()}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Due: {inv.dueDate.toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-extrabold text-slate-900">₹{inv.amount.toLocaleString()}</p>
+                    <StatusBadge status={inv.status} size="sm" />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <EmptyState title="No Invoices Issued" description="Create an invoice using the form above." />
+            )}
+          </div>
+        </Card>
+
+        {/* Clients / CRM Panel */}
+        <Card className="p-0 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 p-5">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Client CRM Directory</h2>
+              <p className="text-xs text-slate-500">Active client business contacts</p>
+            </div>
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-slate-600 border border-slate-200">
+              {clients.length} Accounts
+            </span>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {clients.length ? (
+              clients.slice(0, 8).map((client) => (
+                <div key={client.id} className="flex items-center gap-3.5 p-4 hover:bg-slate-50/50 transition-colors">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 font-bold text-indigo-700 text-sm">
+                    {client.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold text-slate-900">{client.name}</p>
+                    <p className="truncate text-[11px] text-slate-500">
+                      {client.company} · {client.email}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <EmptyState title="No Clients in CRM" description="Add your first customer account above." />
+            )}
+          </div>
+        </Card>
+
+        {/* Domains Panel */}
+        <Card className="p-0 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 p-5">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Domains & Web Assets</h2>
+              <p className="text-xs text-slate-500">Infrastructure and certificate tracking</p>
+            </div>
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-slate-600 border border-slate-200">
+              {domains.length} Tracked
+            </span>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {domains.length ? (
+              domains.map((domain) => (
+                <div key={domain.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors">
+                  <div>
+                    <p className="text-xs font-bold font-mono text-slate-900">{domain.url}</p>
+                    <p className="text-[11px] text-slate-500">{domain.provider}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] text-slate-500">
+                      Expires {domain.expiryDate.toLocaleDateString()}
+                    </p>
+                    <StatusBadge status={domain.status} size="sm" />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <EmptyState title="No Domains Tracked" description="No external domain entries found." />
+            )}
+          </div>
+        </Card>
+
+        {/* Shared Files Panel */}
+        <Card className="p-0 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 p-5">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Secure Document Links</h2>
+              <p className="text-xs text-slate-500">Client-facing files and agreements</p>
+            </div>
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-slate-600 border border-slate-200">
+              {files.length} Shared
+            </span>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {files.length ? (
+              files.map((file) => (
+                <div key={file.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">📄</span>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">{file.fileName}</p>
+                      <p className="text-[11px] text-slate-500">
+                        {file.size ? `${(file.size / 1024).toFixed(1)} KB` : "External Link"}
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={file.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-100 transition-colors"
+                  >
+                    Open Link ↗
+                  </a>
+                </div>
+              ))
+            ) : (
+              <EmptyState title="No Files Shared" description="Use the document share form to link files." />
+            )}
+          </div>
+        </Card>
       </div>
     </div>
   )
 }
-
-function Panel({ title, action, children }: { title: string; action?: string; children: ReactNode }) { return <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 p-4"><h2 className="font-semibold text-slate-900">{title}</h2>{action && <span className="text-xs font-medium text-slate-400">{action}</span>}</div>{children}</section> }
-function Empty({ text }: { text: string }) { return <div className="p-8 text-center text-sm text-slate-500">{text}</div> }

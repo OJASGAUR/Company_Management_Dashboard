@@ -1,8 +1,98 @@
 import { getClientPortalData } from "@/lib/client-portal"
 import { addClientDocument } from "../actions"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card"
+import { FormField, Input } from "@/components/ui/FormField"
+import { Button } from "@/components/ui/Button"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 export default async function ClientDocumentsPage() {
   const { client, files } = await getClientPortalData()
-  if (!client) return <div className="rounded-2xl bg-amber-50 p-8 text-amber-900">This client account is not linked to a client record yet.</div>
-  return <div className="mx-auto max-w-6xl space-y-7"><div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Client Portal</p><h1 className="mt-1 text-3xl font-bold">Documents</h1><p className="mt-2 text-sm text-slate-500">Access shared documents and add secure links to documents your team should receive.</p></div><form action={addClientDocument} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="font-semibold">Share a document link</h2><div className="mt-4 grid gap-4 md:grid-cols-3"><input name="fileName" required placeholder="Document name" className="field" /><input name="fileUrl" required type="url" placeholder="https://..." className="field" /><input name="size" type="number" min="0" placeholder="Size (bytes, optional)" className="field" /><button className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 md:col-span-3">Add document</button></div></form><div className="grid gap-4">{files.map(file => <article key={file.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-slate-900">{file.fileName}</p><p className="mt-1 text-xs text-slate-500">Added {file.createdAt.toLocaleString()} · {file.size ? `${(file.size / 1024).toFixed(1)} KB` : "Size unknown"}</p></div><a href={file.fileUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white">Open document</a></article>)}{files.length===0 && <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-500">No shared documents yet.</div>}</div></div>
+  if (!client) {
+    return (
+      <div className="mx-auto max-w-xl py-12">
+        <Card className="border-amber-200 bg-amber-50/50 p-6 text-amber-900 text-sm">
+          This client account is not linked to a client company profile yet.
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-8 font-sans">
+      <PageHeader
+        category="Client Portal"
+        title="Shared Documents & Assets"
+        description="Access company deliverables, contracts, specifications, and upload shared links."
+      />
+
+      {/* Share Document Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Share New Document Link</CardTitle>
+          <CardDescription>Upload a link to design assets, specification files, or deliverables.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={addClientDocument} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <FormField label="Document Title" required>
+              <Input name="fileName" required placeholder="e.g. Q3 Design Specifications" />
+            </FormField>
+
+            <FormField label="Secure Document URL" required>
+              <Input name="fileUrl" required type="url" placeholder="https://drive.google.com/..." />
+            </FormField>
+
+            <FormField label="File Size (Bytes, Optional)">
+              <Input name="size" type="number" min="0" placeholder="e.g. 2048000" />
+            </FormField>
+
+            <div className="md:col-span-3">
+              <Button type="submit" variant="primary" size="md" className="bg-cyan-600 hover:bg-cyan-700">
+                Share Document With Team
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Shared Documents List */}
+      <div className="space-y-4">
+        {files.map((file) => (
+          <Card key={file.id} hoverEffect className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 text-xl font-bold">
+                📄
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">{file.fileName}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Uploaded on {new Date(file.createdAt).toLocaleDateString()} ·{" "}
+                  {file.size ? `${(file.size / 1024).toFixed(1)} KB` : "External Link"}
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={file.fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition-colors"
+            >
+              Open Document ↗
+            </a>
+          </Card>
+        ))}
+
+        {files.length === 0 && (
+          <Card>
+            <EmptyState
+              icon="📄"
+              title="No Shared Documents"
+              description="No documents or external asset links have been uploaded to your portal yet."
+            />
+          </Card>
+        )}
+      </div>
+    </div>
+  )
 }

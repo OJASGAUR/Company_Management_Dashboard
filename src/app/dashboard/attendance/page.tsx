@@ -1,74 +1,141 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { getAttendanceHistory } from "../actions"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { TableContainer, Table, TableHead, TableHeaderCell, TableBody, TableCell } from "@/components/ui/Table"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { StatCard } from "@/components/ui/StatCard"
+import { EmptyState } from "@/components/ui/EmptyState"
+import { Skeleton } from "@/components/ui/Skeleton"
+
+interface AttendanceRecord {
+  id: string
+  date: Date | string
+  checkIn: Date | string
+  checkOut: Date | string | null
+  status: string
+}
 
 export default function AttendancePage() {
-  const [history, setHistory] = useState<any[]>([])
+  const [history, setHistory] = useState<AttendanceRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getAttendanceHistory().then(data => {
-      setHistory(data)
+    getAttendanceHistory().then((data) => {
+      setHistory(data as AttendanceRecord[])
       setLoading(false)
     })
   }, [])
 
-  return (
-    <div className="p-8 max-w-6xl mx-auto font-sans">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <h1 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Attendance History</h1>
-        <p className="text-slate-500 mb-8">View your recent check-ins and check-outs.</p>
+  const presentCount = history.filter((r) => r.status === "PRESENT").length
+  const lateCount = history.filter((r) => r.status === "LATE").length
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          {loading ? (
-            <div className="p-10 text-center text-slate-400">Loading records...</div>
-          ) : history.length === 0 ? (
-            <div className="p-10 text-center text-slate-400">No attendance records found.</div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="p-5 font-semibold text-slate-600 text-sm">Date</th>
-                  <th className="p-5 font-semibold text-slate-600 text-sm">Check In</th>
-                  <th className="p-5 font-semibold text-slate-600 text-sm">Check Out</th>
-                  <th className="p-5 font-semibold text-slate-600 text-sm">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((record, idx) => (
-                  <motion.tr 
-                    initial={{ opacity: 0, x: -10 }} 
-                    animate={{ opacity: 1, x: 0 }} 
-                    transition={{ delay: idx * 0.05 }}
-                    key={record.id} 
-                    className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td className="p-5 font-medium text-slate-800">
-                      {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </td>
-                    <td className="p-5 text-slate-600">
-                      {new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="p-5 text-slate-600">
-                      {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : <span className="text-slate-300 italic">Active</span>}
-                    </td>
-                    <td className="p-5">
-                      <span className={`px-3 py-1 text-xs font-bold rounded-full ${
-                        record.status === 'PRESENT' ? 'bg-green-100 text-green-700' :
-                        record.status === 'LATE' ? 'bg-orange-100 text-orange-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {record.status}
-                      </span>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+  return (
+    <div className="mx-auto max-w-6xl space-y-8 font-sans">
+      <PageHeader
+        category="Time & Attendance"
+        title="Attendance History"
+        description="Review your recent check-in timestamps, working durations, and attendance status."
+      />
+
+      {/* Summary KPI Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          title="Total Shifts Logged"
+          value={loading ? "..." : history.length}
+          subtitle="Recent 30 recorded shifts"
+          icon="📅"
+        />
+        <StatCard
+          title="On-Time Days"
+          value={loading ? "..." : presentCount}
+          subtitle="Shifts logged before 10:00 AM"
+          icon="✅"
+        />
+        <StatCard
+          title="Late Check-ins"
+          value={loading ? "..." : lateCount}
+          subtitle="Shifts logged after 10:00 AM"
+          icon="⏱️"
+        />
+      </div>
+
+      {/* Attendance Table */}
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-sm">
+          <Skeleton className="h-6 w-1/4" />
+          <div className="space-y-3 pt-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
         </div>
-      </motion.div>
+      ) : history.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6">
+          <EmptyState
+            title="No Attendance Records Found"
+            description="You have not clocked in for any shifts yet. Use the Dashboard Time Clock to log your first check-in."
+          />
+        </div>
+      ) : (
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <tr>
+                <TableHeaderCell>Date</TableHeaderCell>
+                <TableHeaderCell>Check In</TableHeaderCell>
+                <TableHeaderCell>Check Out</TableHeaderCell>
+                <TableHeaderCell className="text-right">Status</TableHeaderCell>
+              </tr>
+            </TableHead>
+            <TableBody>
+              {history.map((record, idx) => (
+                <motion.tr
+                  key={record.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.02 }}
+                  className="transition-colors hover:bg-slate-50/70"
+                >
+                  <TableCell className="font-semibold text-slate-900">
+                    {new Date(record.date).toLocaleDateString(undefined, {
+                      weekday: "short",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-slate-600">
+                    {new Date(record.checkIn).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-slate-600">
+                    {record.checkOut ? (
+                      new Date(record.checkOut).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 font-sans font-medium text-amber-600">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                        In Progress
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <StatusBadge status={record.status} size="sm" />
+                  </TableCell>
+                </motion.tr>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </div>
   )
 }

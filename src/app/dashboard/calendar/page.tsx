@@ -1,65 +1,103 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { Card } from "@/components/ui/Card"
+import { Badge } from "@/components/ui/Badge"
+import { Button } from "@/components/ui/Button"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 export default async function CalendarPage() {
   const session = await auth()
-  if (!session?.user) redirect("/login")
+  if (!session?.user) redirect("/")
 
   const events = await prisma.event.findMany({
-    orderBy: { date: 'asc' },
+    orderBy: { date: "asc" },
     where: {
-      date: { gte: new Date() } // Only upcoming events
-    }
+      date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+    },
   })
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Company Calendar</h1>
-        {["SUPER_ADMIN", "HR"].includes(session.user.role) && (
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium">
-            + Add Event
-          </button>
-        )}
-      </div>
+  const canAddEvent = ["SUPER_ADMIN", "HR", "DIRECTOR"].includes(session.user.role)
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="divide-y divide-gray-200">
-          {events.map(event => {
+  return (
+    <div className="mx-auto max-w-4xl space-y-8 font-sans">
+      <PageHeader
+        category="Schedule"
+        title="Company Calendar & Events"
+        description="Upcoming company all-hands, public holidays, milestones, and team celebrations."
+        actions={
+          canAddEvent ? (
+            <Button variant="primary" size="md">
+              + Add Event
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <Card className="p-0 overflow-hidden shadow-sm">
+        <div className="divide-y divide-slate-100">
+          {events.map((event) => {
             const date = new Date(event.date)
+            const isHoliday = event.type === "HOLIDAY"
+            const isBirthday = event.type === "BIRTHDAY"
+
             return (
-              <div key={event.id} className="p-6 flex items-center gap-6 hover:bg-gray-50">
+              <div
+                key={event.id}
+                className="flex items-center gap-5 p-5 sm:p-6 transition-colors hover:bg-slate-50/70"
+              >
                 {/* Date Block */}
-                <div className="flex flex-col items-center justify-center w-20 h-20 bg-blue-50 text-blue-700 rounded-lg shrink-0">
-                  <span className="text-sm font-semibold uppercase">{date.toLocaleString('default', { month: 'short' })}</span>
-                  <span className="text-3xl font-bold">{date.getDate()}</span>
+                <div
+                  className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl border ${
+                    isHoliday
+                      ? "border-emerald-200 bg-emerald-50/80 text-emerald-700"
+                      : isBirthday
+                      ? "border-purple-200 bg-purple-50/80 text-purple-700"
+                      : "border-indigo-200 bg-indigo-50/80 text-indigo-700"
+                  }`}
+                >
+                  <span className="text-[11px] font-bold uppercase tracking-wider">
+                    {date.toLocaleString("default", { month: "short" })}
+                  </span>
+                  <span className="text-2xl font-black leading-none mt-0.5">
+                    {date.getDate()}
+                  </span>
                 </div>
-                
+
                 {/* Event Details */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold text-gray-900">{event.title}</h3>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${
-                      event.type === 'HOLIDAY' ? 'bg-green-100 text-green-800' :
-                      event.type === 'BIRTHDAY' ? 'bg-purple-100 text-purple-800' :
-                      'bg-orange-100 text-orange-800'
-                    }`}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="text-base font-bold text-slate-900">{event.title}</h3>
+                    <Badge
+                      variant={isHoliday ? "success" : isBirthday ? "primary" : "info"}
+                      size="sm"
+                    >
                       {event.type}
-                    </span>
+                    </Badge>
                   </div>
-                  <p className="text-gray-500 text-sm">{event.description || "No description."}</p>
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    {event.description || "Company scheduled event."}
+                  </p>
+                </div>
+
+                {/* Full Date Subtext */}
+                <div className="hidden sm:block text-right text-xs text-slate-400">
+                  {date.toLocaleDateString(undefined, { weekday: "short" })}
                 </div>
               </div>
             )
           })}
+
           {events.length === 0 && (
-            <div className="p-12 text-center text-gray-500">
-              No upcoming events in the calendar.
-            </div>
+            <EmptyState
+              icon="📅"
+              title="No Upcoming Events"
+              description="There are no scheduled company holidays or all-hands meetings in the immediate calendar."
+            />
           )}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

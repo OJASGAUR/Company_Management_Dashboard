@@ -1,41 +1,205 @@
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
-import type { ReactNode } from "react"
 import { Role } from "@prisma/client"
 import { requireRole } from "@/lib/auth/require-role"
 import { assignTask } from "../actions"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card"
+import { TableContainer, Table, TableHead, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/ui/Table"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { FormField, Input, Select, Textarea } from "@/components/ui/FormField"
+import { Button } from "@/components/ui/Button"
+import { StatCard } from "@/components/ui/StatCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 export default async function OperationsDashboard() {
   const user = await requireRole([Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER])
+
   const [employees, projects, activeTasks] = await Promise.all([
-    prisma.user.findMany({ where: { role: { notIn: [Role.SUPER_ADMIN, Role.CLIENT] }, isActive: true }, select: { id: true, name: true, role: true, department: true } }),
+    prisma.user.findMany({
+      where: { role: { notIn: [Role.SUPER_ADMIN, Role.CLIENT] }, isActive: true },
+      select: { id: true, name: true, role: true, department: true },
+    }),
     prisma.project.findMany({ where: { status: "ACTIVE" }, select: { id: true, name: true } }),
-    prisma.task.findMany({ where: { status: { not: "COMPLETED" } }, include: { user: true, project: true }, orderBy: { deadline: "asc" } }),
+    prisma.task.findMany({
+      where: { status: { not: "COMPLETED" } },
+      include: { user: true, project: true },
+      orderBy: { deadline: "asc" },
+    }),
   ])
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8">
-      <div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Operations</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Operations Dashboard</h1><p className="mt-2 text-sm text-slate-500">Assign work, monitor workload and manage delivery capacity.</p></div>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="self-start rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
-          <div className="mb-6 flex items-center justify-between"><h2 className="text-xl font-semibold text-slate-900">Assign New Task</h2><span className="text-xs text-slate-400">{employees.length} active people</span></div>
-          <form action={assignTask} className="space-y-4">
-            <Field label="Task Title"><input name="title" required className="field" /></Field>
-            <Field label="Project"><select name="projectId" className="field"><option value="">No Project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
-            <Field label="Assign To"><select name="userId" required className="field">{employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.role.replace(/_/g, " ")})</option>)}</select></Field>
-            <div className="grid grid-cols-2 gap-4"><Field label="Priority"><select name="priority" className="field"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option></select></Field><Field label="Deadline"><input type="date" name="deadline" className="field" /></Field></div>
-            <Field label="Description"><textarea name="description" className="field h-24 resize-none" /></Field>
-            <button type="submit" className="w-full rounded-lg bg-indigo-600 py-2.5 font-semibold text-white hover:bg-indigo-700">Assign Task</button>
-          </form>
-        </div>
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-slate-200 p-6"><div><h2 className="text-xl font-semibold text-slate-900">Active Tasks Monitoring</h2><p className="mt-1 text-xs text-slate-500">Sorted by nearest deadline.</p></div><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{activeTasks.length} Active</span></div>
-          <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left"><thead className="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-4">Task</th><th className="p-4">Assigned to</th><th className="p-4">Status</th><th className="p-4 text-right">Deadline</th></tr></thead><tbody className="divide-y divide-slate-100">{activeTasks.map(task => <tr key={task.id} className="text-sm hover:bg-slate-50"><td className="p-4"><p className="font-medium text-slate-900">{task.title}</p><p className="text-xs text-slate-500">{task.project?.name || "General"}</p></td><td className="p-4 text-slate-700">{task.user.name || "Unnamed"}</td><td className="p-4"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{task.status.replace(/_/g, " ")}</span></td><td className="p-4 text-right text-slate-500">{task.deadline ? new Date(task.deadline).toLocaleDateString() : "—"}</td></tr>)}{activeTasks.length === 0 && <tr><td colSpan={4} className="p-10 text-center text-sm text-slate-500">No active tasks currently.</td></tr>}</tbody></table></div>
-        </div>
+    <div className="mx-auto max-w-7xl space-y-8 font-sans">
+      <PageHeader
+        category="Operations"
+        title="Operations Control Hub"
+        description="Delegate deliverables, manage workforce capacity, and monitor company-wide task deadlines."
+      />
+
+      {/* KPI Stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          title="Active Personnel"
+          value={employees.length}
+          subtitle="Available for task assignment"
+          icon="👥"
+        />
+        <StatCard
+          title="Active Projects"
+          value={projects.length}
+          subtitle="Currently underway"
+          icon="🚀"
+        />
+        <StatCard
+          title="Deliverables in Flight"
+          value={activeTasks.length}
+          subtitle="Sorted by nearest deadline"
+          icon="⚡"
+        />
       </div>
-      {user.role === Role.SUPER_ADMIN && <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-6"><h2 className="font-semibold text-indigo-950">Employee onboarding is centralized</h2><p className="mt-2 text-sm text-indigo-800">Use the secure HR onboarding flow for new employees so role grants, sensitive banking data, onboarding state and audit logging stay consistent.</p><Link href="/admin/users/new" className="mt-4 inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Open onboarding</Link></div>}
+
+      {/* Main Grid: Assignment Form + Task Monitor */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 items-start">
+        {/* Assign Task Form Card */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Assign New Task</CardTitle>
+            <CardDescription>Delegate a deliverable to a team member.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={assignTask} className="space-y-4">
+              <FormField label="Task Title" required>
+                <Input name="title" required placeholder="e.g. Audit API Endpoints" />
+              </FormField>
+
+              <FormField label="Associated Project">
+                <Select name="projectId">
+                  <option value="">No Project (General)</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+
+              <FormField label="Assignee" required>
+                <Select name="userId" required>
+                  {employees.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name || "Employee"} ({e.role.replace(/_/g, " ")})
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Priority">
+                  <Select name="priority" defaultValue="MEDIUM">
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="CRITICAL">Critical</option>
+                  </Select>
+                </FormField>
+                <FormField label="Deadline">
+                  <Input type="date" name="deadline" />
+                </FormField>
+              </div>
+
+              <FormField label="Description">
+                <Textarea
+                  name="description"
+                  rows={3}
+                  placeholder="Specific requirements or acceptance criteria..."
+                  className="resize-none"
+                />
+              </FormField>
+
+              <Button type="submit" variant="primary" size="md" className="w-full">
+                Assign Deliverable
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Active Tasks Monitoring Table Card */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Active Deliverables Monitoring</CardTitle>
+              <CardDescription>Real-time queue sorted by nearest deadline.</CardDescription>
+            </div>
+            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 border border-indigo-200">
+              {activeTasks.length} In Progress
+            </span>
+          </CardHeader>
+          <CardContent>
+            {activeTasks.length === 0 ? (
+              <EmptyState
+                title="No Active Deliverables"
+                description="All tasks are completed. Use the form to assign new work."
+              />
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <TableHeaderCell>Deliverable</TableHeaderCell>
+                      <TableHeaderCell>Owner</TableHeaderCell>
+                      <TableHeaderCell>Status</TableHeaderCell>
+                      <TableHeaderCell className="text-right">Deadline</TableHeaderCell>
+                    </tr>
+                  </TableHead>
+                  <TableBody>
+                    {activeTasks.map((task) => (
+                      <TableRow key={task.id}>
+                        <TableCell>
+                          <p className="font-bold text-slate-900 leading-snug">{task.title}</p>
+                          <p className="text-xs text-slate-500">{task.project?.name || "General Operational"}</p>
+                        </TableCell>
+                        <TableCell className="text-xs font-semibold text-slate-700">
+                          {task.user.name || "Unnamed"}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={task.status} size="sm" />
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-slate-600">
+                          {task.deadline ? new Date(task.deadline).toLocaleDateString() : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Super Admin / HR Onboarding Alert */}
+      {user.role === Role.SUPER_ADMIN && (
+        <Card className="border-indigo-200/80 bg-gradient-to-r from-indigo-50/70 via-white to-indigo-50/70">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white font-bold text-xl shadow-sm">
+                👤
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Centralized Employee Onboarding</h3>
+                <p className="mt-1 text-xs text-slate-600 max-w-xl">
+                  Register new employees through the secure HR onboarding portal to automatically set up role permissions, AES-encrypted banking, and activity audit trails.
+                </p>
+              </div>
+            </div>
+            <Link href="/admin/users/new" className="shrink-0">
+              <Button variant="primary" size="md">
+                Open Onboarding Wizard →
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }
-
-function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="space-y-1"><span className="block text-sm font-medium text-slate-700">{label}</span>{children}</label> }

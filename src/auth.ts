@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { Role } from "@prisma/client"
 
+/** Roles that are allowed to sign in through the Administrator / HR tab */
+const ADMIN_ROLES: Role[] = [Role.SUPER_ADMIN, Role.DIRECTOR, Role.HR]
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   adapter: PrismaAdapter(prisma),
@@ -18,12 +21,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         identifier: { label: "Email or Employee ID", type: "text" },
         password: { label: "Password", type: "password" },
+        loginRole: { label: "Login Role", type: "text" },
       },
       async authorize(credentials) {
         if (typeof credentials?.identifier !== "string" || typeof credentials?.password !== "string") return null
 
         const identifier = credentials.identifier.trim()
         if (!identifier || credentials.password.length < 1) return null
+
+        const loginRole = typeof credentials.loginRole === "string" ? credentials.loginRole : "employee"
 
         const user = await prisma.user.findFirst({
           where: {
@@ -39,6 +45,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const passwordsMatch = await bcrypt.compare(credentials.password, user.password)
         if (!passwordsMatch) return null
+
+        // Enforce role-tab match: admin tab requires admin roles, employee tab requires non-admin roles
+        if (loginRole === "admin") {
+          if (!ADMIN_ROLES.includes(user.role)) return null
+        } else {
+          if (ADMIN_ROLES.includes(user.role)) return null
+        }
 
         return user
       },

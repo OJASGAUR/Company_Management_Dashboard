@@ -2,150 +2,211 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { applyLeave, updateLeaveStatus } from "../actions"
 import { redirect } from "next/navigation"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card"
+import { TableContainer, Table, TableHead, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/ui/Table"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { FormField, Select, Input, Textarea } from "@/components/ui/FormField"
+import { Button } from "@/components/ui/Button"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 export default async function LeavesPage() {
   const session = await auth()
-  if (!session?.user) redirect("/login")
+  if (!session?.user) redirect("/")
 
   const leaves = await prisma.leave.findMany({
     where: { userId: session.user.id },
-    orderBy: { startDate: 'desc' }
+    orderBy: { startDate: "desc" },
   })
 
   // Fetch pending leaves if Admin or HR
-  const isAdminOrHR = ["SUPER_ADMIN", "HR"].includes(session.user.role)
-  const pendingLeaves = isAdminOrHR ? await prisma.leave.findMany({
-    where: { status: "PENDING" },
-    include: { user: true },
-    orderBy: { startDate: 'asc' }
-  }) : []
+  const isAdminOrHR = ["SUPER_ADMIN", "HR", "DIRECTOR"].includes(session.user.role)
+  const pendingLeaves = isAdminOrHR
+    ? await prisma.leave.findMany({
+        where: { status: "PENDING" },
+        include: { user: true },
+        orderBy: { startDate: "asc" },
+      })
+    : []
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <h1 className="text-3xl font-bold text-gray-900">Leave Management</h1>
+    <div className="mx-auto max-w-6xl space-y-8 font-sans">
+      <PageHeader
+        category="Time Off"
+        title="Leave Management"
+        description="Submit leave requests, review your application history, and manage team approvals."
+      />
 
+      {/* Admin/HR Pending Approvals Queue */}
       {isAdminOrHR && pendingLeaves.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-yellow-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-200 bg-yellow-50 flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-yellow-900">Pending Approvals</h3>
-            <span className="bg-yellow-200 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full">
-              {pendingLeaves.length} Action Required
+        <Card className="border-amber-200/80 bg-amber-50/20">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                <CardTitle className="text-amber-950">Pending Approvals Required</CardTitle>
+              </div>
+              <CardDescription className="text-amber-800/80">
+                Leave applications requiring management review and decision.
+              </CardDescription>
+            </div>
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200">
+              {pendingLeaves.length} Pending
             </span>
-          </div>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
-                <th className="p-4 font-semibold">Employee</th>
-                <th className="p-4 font-semibold">Type</th>
-                <th className="p-4 font-semibold">Dates</th>
-                <th className="p-4 font-semibold">Reason</th>
-                <th className="p-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {pendingLeaves.map(leave => (
-                <tr key={leave.id} className="hover:bg-gray-50 text-sm">
-                  <td className="p-4 font-medium text-gray-900">{leave.user.name}</td>
-                  <td className="p-4 text-gray-600">{leave.type.replace(/_/g, ' ')}</td>
-                  <td className="p-4 text-gray-600 whitespace-nowrap">
-                    {new Date(leave.startDate).toLocaleDateString()} - <br/>
-                    {new Date(leave.endDate).toLocaleDateString()}
-                  </td>
-                  <td className="p-4 text-gray-600 max-w-xs truncate" title={leave.reason}>{leave.reason}</td>
-                  <td className="p-4 text-right">
-                    <form action={updateLeaveStatus} className="inline-flex gap-2">
-                      <input type="hidden" name="leaveId" value={leave.id} />
-                      <button type="submit" name="status" value="APPROVED" className="bg-green-100 text-green-700 hover:bg-green-200 font-semibold py-1.5 px-3 rounded-md transition-colors">
-                        Approve
-                      </button>
-                      <button type="submit" name="status" value="REJECTED" className="bg-red-100 text-red-700 hover:bg-red-200 font-semibold py-1.5 px-3 rounded-md transition-colors">
-                        Reject
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          </CardHeader>
+          <CardContent>
+            <TableContainer className="border-amber-200/60">
+              <Table>
+                <TableHead className="bg-amber-100/50">
+                  <tr>
+                    <TableHeaderCell>Employee</TableHeaderCell>
+                    <TableHeaderCell>Leave Type</TableHeaderCell>
+                    <TableHeaderCell>Duration</TableHeaderCell>
+                    <TableHeaderCell>Reason</TableHeaderCell>
+                    <TableHeaderCell className="text-right">Decision</TableHeaderCell>
+                  </tr>
+                </TableHead>
+                <TableBody>
+                  {pendingLeaves.map((leave) => (
+                    <TableRow key={leave.id} className="hover:bg-amber-50/40">
+                      <TableCell className="font-semibold text-slate-900">
+                        {leave.user.name || "Employee"}
+                        <span className="block text-xs font-normal text-slate-500">{leave.user.email}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                          {leave.type.replace(/_/g, " ")}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-600">
+                        {new Date(leave.startDate).toLocaleDateString()} → <br />
+                        {new Date(leave.endDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate text-xs text-slate-600" title={leave.reason}>
+                        {leave.reason}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <form action={updateLeaveStatus} className="inline-flex gap-2">
+                          <input type="hidden" name="leaveId" value={leave.id} />
+                          <button
+                            type="submit"
+                            name="status"
+                            value="APPROVED"
+                            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="submit"
+                            name="status"
+                            value="REJECTED"
+                            className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-600 shadow-sm transition hover:bg-rose-50"
+                          >
+                            Reject
+                          </button>
+                        </form>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Apply Leave Form */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:col-span-1">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Apply for Leave</h2>
-          <form action={applyLeave} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700">Leave Type</label>
-              <select name="type" required className="w-full rounded-md border border-gray-300 p-2 text-black">
-                <option value="CASUAL">Casual Leave</option>
-                <option value="SICK">Sick Leave</option>
-                <option value="PAID">Paid Leave</option>
-                <option value="LOSS_OF_PAY">Loss of Pay</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700">Start Date</label>
-              <input type="date" name="startDate" required className="w-full rounded-md border border-gray-300 p-2 text-black" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700">End Date</label>
-              <input type="date" name="endDate" required className="w-full rounded-md border border-gray-300 p-2 text-black" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700">Reason</label>
-              <textarea name="reason" required className="w-full rounded-md border border-gray-300 p-2 text-black h-24 resize-none" placeholder="Reason for leave..."></textarea>
-            </div>
-            <button type="submit" className="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-              Submit Application
-            </button>
-          </form>
-        </div>
+      {/* Main Grid: Form + History */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 items-start">
+        {/* Apply Leave Form Card */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Apply for Leave</CardTitle>
+            <CardDescription>Submit a new time-off request to your manager.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={applyLeave} className="space-y-4">
+              <FormField label="Leave Category" required>
+                <Select name="type" required>
+                  <option value="CASUAL">Casual Leave</option>
+                  <option value="SICK">Sick Leave</option>
+                  <option value="PAID">Paid Time Off</option>
+                  <option value="LOSS_OF_PAY">Loss of Pay</option>
+                </Select>
+              </FormField>
 
-        {/* Leave History */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden lg:col-span-2">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Your Leave Applications</h3>
-          </div>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
-                <th className="p-4 font-semibold">Type</th>
-                <th className="p-4 font-semibold">Dates</th>
-                <th className="p-4 font-semibold">Reason</th>
-                <th className="p-4 font-semibold text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {leaves.map(leave => (
-                <tr key={leave.id} className="hover:bg-gray-50 text-sm">
-                  <td className="p-4 font-medium text-gray-900">{leave.type.replace(/_/g, ' ')}</td>
-                  <td className="p-4 text-gray-600 whitespace-nowrap">
-                    {new Date(leave.startDate).toLocaleDateString()} - <br/>
-                    {new Date(leave.endDate).toLocaleDateString()}
-                  </td>
-                  <td className="p-4 text-gray-600 max-w-xs truncate" title={leave.reason}>{leave.reason}</td>
-                  <td className="p-4 text-right">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold tracking-wide ${
-                      leave.status === "APPROVED" ? "bg-green-100 text-green-800" :
-                      leave.status === "REJECTED" ? "bg-red-100 text-red-800" :
-                      "bg-yellow-100 text-yellow-800"
-                    }`}>
-                      {leave.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {leaves.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-gray-500">
-                    No leave applications found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <FormField label="Start Date" required>
+                  <Input type="date" name="startDate" required />
+                </FormField>
+                <FormField label="End Date" required>
+                  <Input type="date" name="endDate" required />
+                </FormField>
+              </div>
+
+              <FormField label="Reason for Leave" required>
+                <Textarea
+                  name="reason"
+                  required
+                  rows={3}
+                  placeholder="Provide context for your manager..."
+                  className="resize-none"
+                />
+              </FormField>
+
+              <Button type="submit" variant="primary" size="md" className="w-full">
+                Submit Leave Application
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Leave History Table Card */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>My Leave Applications</CardTitle>
+            <CardDescription>Track status and review past requests.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {leaves.length === 0 ? (
+              <EmptyState
+                title="No Leave Applications"
+                description="You haven't submitted any leave requests yet. Fill out the application form on the left to apply."
+              />
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <TableHeaderCell>Category</TableHeaderCell>
+                      <TableHeaderCell>Duration</TableHeaderCell>
+                      <TableHeaderCell>Reason</TableHeaderCell>
+                      <TableHeaderCell className="text-right">Status</TableHeaderCell>
+                    </tr>
+                  </TableHead>
+                  <TableBody>
+                    {leaves.map((leave) => (
+                      <TableRow key={leave.id}>
+                        <TableCell className="font-semibold text-slate-800">
+                          {leave.type.replace(/_/g, " ")}
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-600 whitespace-nowrap">
+                          {new Date(leave.startDate).toLocaleDateString()} → <br />
+                          {new Date(leave.endDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-xs text-slate-600" title={leave.reason}>
+                          {leave.reason}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <StatusBadge status={leave.status} size="sm" />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

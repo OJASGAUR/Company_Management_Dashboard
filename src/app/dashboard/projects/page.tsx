@@ -2,7 +2,12 @@ import { prisma } from "@/lib/prisma"
 import { createProject } from "../actions"
 import { requireRole } from "@/lib/auth/require-role"
 import { Role } from "@prisma/client"
-import type { ReactNode } from "react"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { FormField, Input } from "@/components/ui/FormField"
+import { Button } from "@/components/ui/Button"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 const PROJECT_CREATE_ROLES: Role[] = [
   Role.SUPER_ADMIN,
@@ -21,16 +26,133 @@ export default async function ProjectsPage() {
     Role.TESTER,
   ])
 
-  const projects = await prisma.project.findMany({ orderBy: { createdAt: "desc" } })
+  const projects = await prisma.project.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      tasks: {
+        select: { id: true, status: true },
+      },
+    },
+  })
+
   const canCreateProject = PROJECT_CREATE_ROLES.includes(user.role)
 
   return (
-    <div className="mx-auto max-w-6xl space-y-7">
-      <div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Delivery</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Projects</h1><p className="mt-2 text-sm text-slate-500">Plan delivery, milestones and work across active company projects.</p></div>
-      {canCreateProject && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="mb-5 text-xl font-semibold text-slate-900">Create New Project</h2><form action={createProject} className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"><Field label="Project Name"><input name="name" required className="field" /></Field><Field label="Client Name"><input name="clientName" className="field" /></Field><Field label="Start Date"><input type="date" name="startDate" className="field" /></Field><Field label="End Date"><input type="date" name="endDate" className="field" /></Field><Field label="Description" wide><input name="description" className="field" /></Field><div className="flex items-end lg:col-span-1"><button className="w-full rounded-lg bg-indigo-600 py-2.5 font-semibold text-white hover:bg-indigo-700">Create Project</button></div></form></div>}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">{projects.map(project => <div key={project.id} className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="mb-4 flex items-start justify-between gap-3"><h3 className="line-clamp-1 text-lg font-semibold text-slate-900">{project.name}</h3><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{project.status.replace(/_/g, " ")}</span></div><p className="mb-5 line-clamp-3 flex-1 text-sm leading-6 text-slate-500">{project.description || "No description provided."}</p><div className="space-y-2 border-t border-slate-100 pt-4 text-sm"><div className="flex justify-between"><span className="text-slate-400">Client</span><span className="font-medium text-slate-800">{project.clientName || "Internal"}</span></div><div className="flex justify-between"><span className="text-slate-400">Timeline</span><span className="text-slate-600">{project.startDate ? project.startDate.toLocaleDateString() : "TBD"} – {project.endDate ? project.endDate.toLocaleDateString() : "TBD"}</span></div></div></div>)}{projects.length === 0 && <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-500">No projects found.</div>}</div>
+    <div className="mx-auto max-w-7xl space-y-8 font-sans">
+      <PageHeader
+        category="Delivery"
+        title="Projects & Milestones"
+        description="Monitor company project deliverables, timelines, and client engagements."
+      />
+
+      {/* Create Project Form for Authorized Managers */}
+      {canCreateProject && (
+        <Card className="border-indigo-100 bg-white shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-indigo-600" />
+              <CardTitle>Launch New Project</CardTitle>
+            </div>
+            <CardDescription>Initiate a new project record and configure milestones.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={createProject} className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 items-end">
+              <FormField label="Project Name" required>
+                <Input name="name" required placeholder="e.g. Acme Mobile App" />
+              </FormField>
+
+              <FormField label="Client / Account Name">
+                <Input name="clientName" placeholder="e.g. Acme Corp or Internal" />
+              </FormField>
+
+              <FormField label="Start Date">
+                <Input type="date" name="startDate" />
+              </FormField>
+
+              <FormField label="Target Delivery Date">
+                <Input type="date" name="endDate" />
+              </FormField>
+
+              <div className="md:col-span-2 lg:col-span-3">
+                <FormField label="Project Scope & Objectives">
+                  <Input name="description" placeholder="Brief outline of deliverables and tech stack..." />
+                </FormField>
+              </div>
+
+              <div>
+                <Button type="submit" variant="primary" size="md" className="w-full">
+                  Create Project
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Projects Grid */}
+      {projects.length === 0 ? (
+        <Card>
+          <EmptyState
+            title="No Active Projects"
+            description="There are currently no projects recorded. Managers can launch a new project using the form above."
+          />
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => {
+            const completedCount = project.tasks.filter((t) => t.status === "COMPLETED").length
+            const totalTasks = project.tasks.length
+            const completionPercent = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0
+
+            return (
+              <Card key={project.id} hoverEffect className="flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="line-clamp-1 text-base font-bold text-slate-900" title={project.name}>
+                      {project.name}
+                    </h3>
+                    <StatusBadge status={project.status} size="sm" />
+                  </div>
+
+                  <p className="line-clamp-2 text-xs leading-relaxed text-slate-500 mb-5">
+                    {project.description || "No project description provided."}
+                  </p>
+                </div>
+
+                <div className="space-y-3 border-t border-slate-100 pt-4 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Client / Account</span>
+                    <span className="font-semibold text-slate-800">{project.clientName || "Internal"}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Timeline</span>
+                    <span className="font-medium text-slate-600">
+                      {project.startDate ? new Date(project.startDate).toLocaleDateString() : "TBD"} –{" "}
+                      {project.endDate ? new Date(project.endDate).toLocaleDateString() : "TBD"}
+                    </span>
+                  </div>
+
+                  {totalTasks > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-400">Progress ({completedCount}/{totalTasks} tasks)</span>
+                        <span className="font-bold text-indigo-600">{completionPercent}%</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-indigo-600 transition-all duration-300"
+                          style={{ width: `${completionPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
-
-function Field({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) { return <label className={`space-y-1.5 ${wide ? "md:col-span-3" : ""}`}><span className="block text-sm font-medium text-slate-700">{label}</span>{children}</label> }

@@ -1,48 +1,64 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { Card } from "@/components/ui/Card"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 export default async function AssetsPage() {
   const session = await auth()
-  if (!session?.user) redirect("/login")
+  if (!session?.user) redirect("/")
 
   const myAssets = await prisma.asset.findMany({
     where: { assignedToId: session.user.id },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: "desc" },
   })
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">My Assets</h1>
+    <div className="mx-auto max-w-5xl space-y-8 font-sans">
+      <PageHeader
+        category="Equipment"
+        title="My Assigned Assets"
+        description="Company hardware, devices, and computing peripherals assigned to your account."
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {myAssets.map(asset => (
-          <div key={asset.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-xl">
-                {asset.type === 'LAPTOP' ? '💻' : asset.type === 'MONITOR' ? '🖥' : '📱'}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {myAssets.map((asset) => (
+          <Card key={asset.id} hoverEffect className="flex flex-col justify-between">
+            <div>
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-2xl text-indigo-600">
+                  {asset.type === "LAPTOP" ? "💻" : asset.type === "MONITOR" ? "🖥️" : "📱"}
+                </div>
+                <StatusBadge status={asset.status} size="sm" />
               </div>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                asset.status === "ASSIGNED" ? "bg-green-100 text-green-800" :
-                asset.status === "REPAIR" ? "bg-red-100 text-red-800" :
-                "bg-gray-100 text-gray-800"
-              }`}>
-                {asset.status}
-              </span>
+
+              <h3 className="font-bold text-base text-slate-900 mb-1">{asset.name}</h3>
+              <p className="text-xs text-slate-500 font-medium">Category: {asset.type}</p>
             </div>
-            
-            <h3 className="font-semibold text-gray-900 mb-1">{asset.name}</h3>
-            <p className="text-sm text-gray-500 mb-4">Type: {asset.type}</p>
-            
-            <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
-              <button className="text-red-600 hover:text-red-800 text-sm font-medium">Report Issue</button>
+
+            <div className="mt-5 border-t border-slate-100 pt-4 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-mono">ID: #{asset.id.slice(-6).toUpperCase()}</span>
+              <button
+                type="button"
+                className="text-xs font-semibold text-rose-600 hover:text-rose-800 transition-colors"
+              >
+                Report Issue
+              </button>
             </div>
-          </div>
+          </Card>
         ))}
 
         {myAssets.length === 0 && (
-          <div className="col-span-full p-12 text-center text-gray-500 bg-white rounded-xl border border-gray-200 border-dashed">
-            You do not have any company assets assigned to you yet.
+          <div className="col-span-full">
+            <Card>
+              <EmptyState
+                icon="💻"
+                title="No Company Assets Assigned"
+                description="You currently do not have any company hardware or peripheral assets assigned to your profile."
+              />
+            </Card>
           </div>
         )}
       </div>

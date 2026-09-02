@@ -3,15 +3,25 @@
 import { createUser } from "../../actions"
 import Link from "next/link"
 import { useState } from "react"
-import type { ReactNode } from "react"
 import { Role } from "@prisma/client"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card"
+import { FormField, Input, Select, Textarea } from "@/components/ui/FormField"
+import { Button } from "@/components/ui/Button"
 
 const roles: Role[] = [
-  "EMPLOYEE", "HR", "OPERATIONS_MANAGER", "TEAM_LEAD", "DEVELOPER",
-  "DESIGNER", "TESTER", "ACCOUNTS", "DIRECTOR", "SUPER_ADMIN", "CLIENT",
+  "EMPLOYEE",
+  "HR",
+  "OPERATIONS_MANAGER",
+  "TEAM_LEAD",
+  "DEVELOPER",
+  "DESIGNER",
+  "TESTER",
+  "ACCOUNTS",
+  "DIRECTOR",
+  "SUPER_ADMIN",
+  "CLIENT",
 ]
-
-const inputClass = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
 
 export default function NewUserPage() {
   const [error, setError] = useState<string | null>(null)
@@ -23,85 +33,253 @@ export default function NewUserPage() {
     try {
       await createUser(formData)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create employee")
+      setError(err instanceof Error ? err.message : "Failed to register employee")
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">HR / Onboarding</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">New Joiner Registration</h1>
-          <p className="mt-2 text-sm text-slate-500">Create the employee identity that all company modules will use.</p>
-        </div>
-        <Link href="/admin/users" className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</Link>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-8 font-sans">
+      <PageHeader
+        category="HR / Onboarding"
+        title="New Joiner Registration"
+        description="Provision the master employee identity, configure role permissions, and record encrypted payroll credentials."
+        actions={
+          <Link href="/admin/users">
+            <Button variant="outline" size="md">
+              Cancel & Return
+            </Button>
+          </Link>
+        }
+      />
 
-      <form action={handleSubmit} className="space-y-6">
-        {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      <form action={handleSubmit} className="space-y-8">
+        {error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+            {error}
+          </div>
+        )}
 
-        <Section title="Account & employment">
-          <Field label="Full name"><input name="name" required className={inputClass} /></Field>
-          <Field label="Personal email"><input type="email" name="email" required className={inputClass} /></Field>
-          <Field label="Company email"><input type="email" name="companyEmail" className={inputClass} /></Field>
-          <Field label="Temporary password"><input type="password" name="password" required minLength={8} className={inputClass} /></Field>
-          <Field label="Role"><select name="role" className={inputClass}>{roles.map(role => <option key={role} value={role}>{role.replace(/_/g, " ")}</option>)}</select></Field>
-          <Field label="Department"><input name="department" className={inputClass} /></Field>
-          <Field label="Designation"><input name="designation" className={inputClass} /></Field>
-          <Field label="Joining date"><input type="date" name="joiningDate" className={inputClass} /></Field>
-        </Section>
+        {/* 1. Account & Employment Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 font-bold text-xs text-indigo-700">
+                1
+              </span>
+              <CardTitle>Account & Employment Details</CardTitle>
+            </div>
+            <CardDescription>Core identity information and login credentials.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <FormField label="Full Legal Name" required>
+              <Input name="name" required placeholder="Jane Doe" />
+            </FormField>
 
-        <Section title="Personal information">
-          <Field label="Phone"><input name="phone" className={inputClass} /></Field>
-          <Field label="Date of birth"><input type="date" name="dateOfBirth" className={inputClass} /></Field>
-          <Field label="Gender"><input name="gender" className={inputClass} /></Field>
-          <Field label="Postal code"><input name="postalCode" className={inputClass} /></Field>
-          <Field label="City"><input name="city" className={inputClass} /></Field>
-          <Field label="State"><input name="state" className={inputClass} /></Field>
-          <Field label="Address" wide><textarea name="address" rows={3} className={inputClass} /></Field>
-        </Section>
+            <FormField label="Personal Email" required>
+              <Input type="email" name="email" required placeholder="jane.personal@example.com" />
+            </FormField>
 
-        <Section title="Emergency contact">
-          <Field label="Contact name"><input name="emergencyName" className={inputClass} /></Field>
-          <Field label="Contact phone"><input name="emergencyPhone" className={inputClass} /></Field>
-        </Section>
+            <FormField label="Company Email (Optional)">
+              <Input type="email" name="companyEmail" placeholder="jane@company.com" />
+            </FormField>
 
-        <Section title="Education & experience">
-          <Field label="Education" wide><textarea name="education" rows={3} className={inputClass} placeholder="Degree, institution, graduation year..." /></Field>
-          <Field label="Experience" wide><textarea name="experience" rows={3} className={inputClass} placeholder="Previous companies, roles, years..." /></Field>
-        </Section>
+            <FormField label="Initial Password" required>
+              <Input
+                type="password"
+                name="password"
+                required
+                minLength={8}
+                placeholder="Minimum 8 characters"
+              />
+            </FormField>
 
-        <Section title="Banking & payroll">
-          <p className="col-span-full -mt-2 text-xs text-slate-500">Bank account numbers are encrypted before storage. Configure <code>CREDENTIAL_ENCRYPTION_KEY</code> in production.</p>
-          <Field label="Account holder"><input name="bankAccountName" className={inputClass} /></Field>
-          <Field label="Account number"><input name="bankAccountNumber" inputMode="numeric" autoComplete="off" className={inputClass} /></Field>
-          <Field label="Bank name"><input name="bankName" className={inputClass} /></Field>
-          <Field label="IFSC"><input name="bankIfsc" className={inputClass} /></Field>
-          <Field label="UPI ID"><input name="upiId" className={inputClass} /></Field>
-        </Section>
+            <FormField label="Assigned Role" required>
+              <Select name="role" defaultValue="EMPLOYEE">
+                {roles.map((role) => (
+                  <option key={role} value={role}>
+                    {role.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
 
-        <div className="flex items-center justify-end gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <Link href="/admin/users" className="rounded-lg px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</Link>
-          <button disabled={submitting} type="submit" className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
-            {submitting ? "Creating..." : "Create Employee Profile"}
-          </button>
+            <FormField label="Department">
+              <Input name="department" placeholder="e.g. Engineering, Design, Operations" />
+            </FormField>
+
+            <FormField label="Designation / Job Title">
+              <Input name="designation" placeholder="e.g. Senior Frontend Engineer" />
+            </FormField>
+
+            <FormField label="Joining Date">
+              <Input type="date" name="joiningDate" />
+            </FormField>
+          </CardContent>
+        </Card>
+
+        {/* 2. Personal Information Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 font-bold text-xs text-indigo-700">
+                2
+              </span>
+              <CardTitle>Personal Information</CardTitle>
+            </div>
+            <CardDescription>Contact numbers and permanent address records.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <FormField label="Contact Phone">
+              <Input name="phone" placeholder="+1 (555) 000-0000" />
+            </FormField>
+
+            <FormField label="Date of Birth">
+              <Input type="date" name="dateOfBirth" />
+            </FormField>
+
+            <FormField label="Gender">
+              <Input name="gender" placeholder="e.g. Female, Male, Non-binary" />
+            </FormField>
+
+            <FormField label="Postal Code">
+              <Input name="postalCode" placeholder="Postal / ZIP Code" />
+            </FormField>
+
+            <FormField label="City">
+              <Input name="city" placeholder="City" />
+            </FormField>
+
+            <FormField label="State / Province">
+              <Input name="state" placeholder="State / Province" />
+            </FormField>
+
+            <div className="md:col-span-2">
+              <FormField label="Street Address">
+                <Textarea name="address" rows={2} placeholder="Full residential street address..." className="resize-none" />
+              </FormField>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 3. Emergency Contact */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 font-bold text-xs text-indigo-700">
+                3
+              </span>
+              <CardTitle>Emergency Contact</CardTitle>
+            </div>
+            <CardDescription>Primary emergency point of contact.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <FormField label="Emergency Contact Name">
+              <Input name="emergencyName" placeholder="Next of Kin / Contact Name" />
+            </FormField>
+
+            <FormField label="Emergency Phone Number">
+              <Input name="emergencyPhone" placeholder="Emergency Phone" />
+            </FormField>
+          </CardContent>
+        </Card>
+
+        {/* 4. Education & Experience */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 font-bold text-xs text-indigo-700">
+                4
+              </span>
+              <CardTitle>Education & Background</CardTitle>
+            </div>
+            <CardDescription>Academic degrees and previous employment experience.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <FormField label="Academic History">
+              <Textarea
+                name="education"
+                rows={3}
+                placeholder="Degree, Institution, Graduation Year..."
+                className="resize-none"
+              />
+            </FormField>
+
+            <FormField label="Previous Work Experience">
+              <Textarea
+                name="experience"
+                rows={3}
+                placeholder="Past companies, positions, years of service..."
+                className="resize-none"
+              />
+            </FormField>
+          </CardContent>
+        </Card>
+
+        {/* 5. Banking & Payroll (AES Encrypted) */}
+        <Card className="border-amber-200 bg-amber-50/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 font-bold text-xs text-amber-800">
+                  5
+                </span>
+                <CardTitle className="text-amber-950">Banking & Payroll Account</CardTitle>
+              </div>
+              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 border border-amber-200">
+                Encrypted at Rest
+              </span>
+            </div>
+            <CardDescription className="text-amber-800/80">
+              Bank account numbers are encrypted using AES-256 before storage in PostgreSQL.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <FormField label="Bank Account Holder">
+              <Input name="bankAccountName" placeholder="Full name on bank account" />
+            </FormField>
+
+            <FormField label="Bank Account Number">
+              <Input
+                name="bankAccountNumber"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="Account number (encrypted automatically)"
+              />
+            </FormField>
+
+            <FormField label="Bank Name">
+              <Input name="bankName" placeholder="e.g. Chase, HDFC, Barclays" />
+            </FormField>
+
+            <FormField label="Bank IFSC / Routing Code">
+              <Input name="bankIfsc" placeholder="IFSC or Routing Code" />
+            </FormField>
+
+            <FormField label="UPI / Digital Payment ID">
+              <Input name="upiId" placeholder="name@upi" />
+            </FormField>
+          </CardContent>
+        </Card>
+
+        {/* Form Actions Footer */}
+        <div className="flex items-center justify-end gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <Link href="/admin/users">
+            <Button variant="ghost" size="md">
+              Cancel
+            </Button>
+          </Link>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            isLoading={submitting}
+            className="px-8 shadow-md"
+          >
+            {submitting ? "Registering Employee..." : "Create Master Employee Profile"}
+          </Button>
         </div>
       </form>
     </div>
   )
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-5 text-lg font-semibold text-slate-900">{title}</h2>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">{children}</div>
-    </section>
-  )
-}
-
-function Field({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) {
-  return <label className={wide ? "space-y-1.5 md:col-span-2" : "space-y-1.5"}><span className="block text-sm font-medium text-slate-700">{label}</span>{children}</label>
 }

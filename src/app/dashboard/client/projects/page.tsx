@@ -1,11 +1,80 @@
 import Link from "next/link"
 import { getClientPortalData } from "@/lib/client-portal"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { Card } from "@/components/ui/Card"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 export default async function ClientProjectsPage() {
   const { client, projects } = await getClientPortalData()
-  if (!client) return <MissingLink />
-  return <div className="mx-auto max-w-7xl space-y-7"><Header title="Projects" text="Track every project linked to your company, including status and delivery dates." /><div className="grid gap-5 md:grid-cols-2">{projects.map(project => <article key={project.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-start justify-between gap-4"><h2 className="text-xl font-semibold">{project.name}</h2><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{project.status.replace(/_/g, " ")}</span></div><p className="mt-3 text-sm leading-6 text-slate-500">{project.description || "No description provided."}</p><div className="mt-6 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 text-sm"><div><span className="block text-xs uppercase text-slate-400">Start</span>{project.startDate?.toLocaleDateString() || "TBD"}</div><div><span className="block text-xs uppercase text-slate-400">Delivery</span>{project.endDate?.toLocaleDateString() || "TBD"}</div></div><Link href={`/dashboard/client/tasks?project=${project.id}`} className="mt-5 inline-flex text-sm font-semibold text-indigo-600">View project tasks →</Link></article>)}{projects.length===0 && <Empty text="No projects have been linked to this client account." />}</div></div>
+  if (!client) {
+    return (
+      <div className="mx-auto max-w-xl py-12">
+        <Card className="border-amber-200 bg-amber-50/50 p-6 text-amber-900 text-sm">
+          This client account is not linked to a client company profile yet.
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-8 font-sans">
+      <PageHeader
+        category="Client Portal"
+        title="Project Deliverables"
+        description="Track all development projects and milestone deliverables associated with your organization."
+      />
+
+      {projects.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon="🚀"
+            title="No Projects Associated"
+            description="There are currently no active development projects assigned to your company record."
+          />
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {projects.map((project) => (
+            <Card key={project.id} hoverEffect className="flex flex-col justify-between">
+              <div>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <h3 className="text-base font-bold text-slate-900">{project.name}</h3>
+                  <StatusBadge status={project.status} size="sm" />
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed line-clamp-3 mb-5">
+                  {project.description || "No project description provided."}
+                </p>
+              </div>
+
+              <div className="space-y-4 border-t border-slate-100 pt-4">
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Start Date</span>
+                    <span className="font-semibold text-slate-800">
+                      {project.startDate ? new Date(project.startDate).toLocaleDateString() : "TBD"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Target Delivery</span>
+                    <span className="font-semibold text-slate-800">
+                      {project.endDate ? new Date(project.endDate).toLocaleDateString() : "TBD"}
+                    </span>
+                  </div>
+                </div>
+
+                <Link
+                  href={`/dashboard/client/tasks?project=${project.id}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-600 hover:text-cyan-700 transition-colors"
+                >
+                  <span>View Project Tasks</span>
+                  <span>→</span>
+                </Link>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
-function Header({ title, text }: { title: string; text: string }) { return <div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Client Portal</p><h1 className="mt-1 text-3xl font-bold">{title}</h1><p className="mt-2 text-sm text-slate-500">{text}</p></div> }
-function Empty({ text }: { text: string }) { return <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-500 md:col-span-2">{text}</div> }
-function MissingLink() { return <div className="rounded-2xl bg-amber-50 p-8 text-amber-900">This client account is not linked to a client record yet.</div> }
