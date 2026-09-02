@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   if (user.role === Role.CLIENT) {
     return (
-      <div className="flex min-h-screen flex-col lg:flex-row bg-slate-50 text-slate-900">
+      <div className="flex h-screen overflow-hidden flex-col lg:flex-row bg-slate-50 text-slate-900">
         <ClientSidebar
           user={{
             id: user.id,
@@ -34,7 +34,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row bg-slate-50 text-slate-900">
+    <div className="flex h-screen overflow-hidden flex-col lg:flex-row bg-slate-50 text-slate-900">
       <AppSidebar
         user={{
           id: user.id,

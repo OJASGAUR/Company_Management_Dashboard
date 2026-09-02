@@ -198,7 +198,7 @@ export function ClientSidebar({ user, signOutAction }: ClientSidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden h-screen w-64 shrink-0 flex-col lg:flex border-r border-slate-900">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col lg:flex border-r border-slate-900 bg-slate-950">
         <ClientSidebarContent
           user={user}
           currentPath={pathname}

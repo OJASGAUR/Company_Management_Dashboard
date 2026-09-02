@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row bg-slate-50 text-slate-900">
+    <div className="flex h-screen overflow-hidden flex-col lg:flex-row bg-slate-50 text-slate-900">
       <AdminSidebar
         user={{
           id: user.id,
