@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { getTasks, updateTaskStatus, createTask } from "../actions"
+import { getTasks, updateTaskStatus, createTask, deleteTask } from "../actions"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
@@ -29,6 +29,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [showNewTask, setShowNewTask] = useState(false)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     getTasks().then((data) => {
@@ -66,6 +67,21 @@ export default function TasksPage() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
+  }
+
+  const handleDeleteTask = async (taskId: string) => {
+    setDeletingId(taskId)
+    // Optimistic update
+    setTasks((prev) => prev.filter((t) => t.id !== taskId))
+    try {
+      await deleteTask(taskId)
+    } catch (error) {
+      console.error(error)
+      const reloaded = await getTasks()
+      setTasks(reloaded as Task[])
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -160,20 +176,34 @@ export default function TasksPage() {
                 <div className="flex-1 space-y-3">
                   <AnimatePresence>
                     {columnTasks.map((task) => (
-                      <div
+                      <motion.div
                         key={task.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
                         draggable
-                        onDragStart={(e) => handleDragStart(e, task.id)}
-                        onDragEnd={handleDragEnd}
+                        onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, task.id)}
+                        onDragEnd={() => setActiveDragId(null)}
                         className={`group relative cursor-grab rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md active:cursor-grabbing ${
                           activeDragId === task.id ? "opacity-40" : "opacity-100"
-                        }`}
+                        } ${deletingId === task.id ? "pointer-events-none opacity-50" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <StatusBadge status={task.priority} size="sm" />
-                          <span className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity text-xs">
-                            ⠿
-                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteTask(task.id)
+                            }}
+                            title="Delete task"
+                            className="rounded-md p-1 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-50 hover:text-rose-600"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                          </button>
                         </div>
                         <h4 className="text-sm font-bold text-slate-900 leading-snug">
                           {task.title}
@@ -183,7 +213,7 @@ export default function TasksPage() {
                             {task.description}
                           </p>
                         )}
-                      </div>
+                      </motion.div>
                     ))}
                   </AnimatePresence>
 

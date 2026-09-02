@@ -73,6 +73,16 @@ export async function updateTaskStatus(taskId: string, newStatus: string) {
   revalidatePath("/dashboard/tasks"); revalidatePath("/dashboard"); return { success: true }
 }
 
+export async function deleteTask(taskId: string) {
+  const user = await requireAuth(); if (user.role === Role.CLIENT) throw new Error("Forbidden")
+  const safeTaskId = id(taskId, "Task ID")
+  const task = await prisma.task.findUnique({ where: { id: safeTaskId } }); if (!task) throw new Error("Task not found")
+  const canManageAllTasks = permissions.assignTasks.includes(user.role)
+  if (task.userId !== user.id && !canManageAllTasks) throw new Error("Forbidden")
+  await prisma.task.delete({ where: { id: safeTaskId } })
+  revalidatePath("/dashboard/tasks"); revalidatePath("/dashboard"); revalidatePath("/dashboard/operations"); return { success: true }
+}
+
 export async function applyLeave(formData: FormData) {
   const user = await requireAuth(), type = enumValue(formData.get("type"), "Leave type", LEAVE_TYPES)
   const startDate = date(formData.get("startDate"), "Start date"), endDate = date(formData.get("endDate"), "End date")
