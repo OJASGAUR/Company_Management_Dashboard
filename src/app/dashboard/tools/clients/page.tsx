@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { EmptyState } from "@/components/ui/EmptyState"
 
+import { ClientRow } from "./ClientRow"
+
 export default async function ClientsManagementPage() {
   await requireRole([Role.SUPER_ADMIN, Role.DIRECTOR, Role.OPERATIONS_MANAGER, Role.ACCOUNTS])
 
@@ -59,29 +61,7 @@ export default async function ClientsManagementPage() {
             <TableBody>
               {clients.map((client) => {
                 const user = statusByEmail.get(client.email)
-                const isEnabled = user?.role === "CLIENT"
-
-                return (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-bold text-slate-900">{client.name}</TableCell>
-                    <TableCell className="font-medium text-slate-700">{client.company}</TableCell>
-                    <TableCell className="font-mono text-xs text-slate-500">{client.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={isEnabled ? "info" : "default"} size="sm">
-                        {isEnabled ? "ENABLED" : "NOT PROVISIONED"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {user ? (
-                        <Badge variant={user.isActive ? "success" : "danger"} size="sm">
-                          {user.isActive ? "Active" : "Disabled"}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-slate-400 font-medium">No Account</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
+                return <ClientRow key={client.id} client={client} user={user} />
               })}
             </TableBody>
           </Table>

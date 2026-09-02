@@ -324,3 +324,34 @@ export async function broadcastNotificationToAll(formData: FormData) {
   revalidatePath("/dashboard")
   return { success: true, totalSent: users.length }
 }
+
+export async function deleteProject(projectId: string) {
+  const actor = await requireRole(permissions.manageProjects)
+  const safeId = id(projectId, "Project ID")
+  await prisma.project.delete({ where: { id: safeId } })
+  revalidatePath("/dashboard/projects")
+  revalidatePath("/dashboard")
+  return { success: true }
+}
+
+export async function deleteLeave(leaveId: string) {
+  const user = await requireAuth()
+  const safeId = id(leaveId, "Leave ID")
+  const leave = await prisma.leave.findUnique({ where: { id: safeId } })
+  if (!leave) throw new Error("Leave request not found")
+  const canApprove = permissions.approveLeaves.includes(user.role)
+  if (leave.userId !== user.id && !canApprove) throw new Error("Forbidden")
+  await prisma.leave.delete({ where: { id: safeId } })
+  revalidatePath("/dashboard/leaves")
+  revalidatePath("/dashboard")
+  return { success: true }
+}
+
+export async function deleteAsset(assetId: string) {
+  const user = await requireAuth()
+  const safeId = id(assetId, "Asset ID")
+  await prisma.asset.delete({ where: { id: safeId } })
+  revalidatePath("/dashboard/assets")
+  revalidatePath("/dashboard")
+  return { success: true }
+}

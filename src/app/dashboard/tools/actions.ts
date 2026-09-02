@@ -68,3 +68,30 @@ export async function createInvoice(formData: FormData) {
   await Promise.allSettled([recordAudit({ actorId: actor.id, action: "CREATE", entity: "Invoice", entityId: invoice.id })])
   revalidatePath("/dashboard/tools")
 }
+
+export async function deleteClient(clientId: string) {
+  const actor = await requireRole(permissions.manageClients)
+  await prisma.client.delete({ where: { id: clientId } })
+  await Promise.allSettled([recordAudit({ actorId: actor.id, action: "DELETE", entity: "Client", entityId: clientId })])
+  revalidatePath("/dashboard/tools")
+  revalidatePath("/dashboard/tools/clients")
+  return { success: true }
+}
+
+export async function deleteDocument(documentId: string) {
+  const actor = await requireRole(permissions.manageClients)
+  await prisma.fileRecord.delete({ where: { id: documentId } })
+  await Promise.allSettled([recordAudit({ actorId: actor.id, action: "DELETE", entity: "FileRecord", entityId: documentId })])
+  revalidatePath("/dashboard/tools")
+  revalidatePath("/dashboard/client/documents")
+  return { success: true }
+}
+
+export async function deleteInvoice(invoiceId: string) {
+  const actor = await requireRole(permissions.manageFinance)
+  await prisma.invoice.delete({ where: { id: invoiceId } })
+  await Promise.allSettled([recordAudit({ actorId: actor.id, action: "DELETE", entity: "Invoice", entityId: invoiceId })])
+  revalidatePath("/dashboard/tools")
+  revalidatePath("/dashboard/client/invoices")
+  return { success: true }
+}

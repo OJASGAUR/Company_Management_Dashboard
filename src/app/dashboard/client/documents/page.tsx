@@ -6,6 +6,8 @@ import { FormField, Input } from "@/components/ui/FormField"
 import { Button } from "@/components/ui/Button"
 import { EmptyState } from "@/components/ui/EmptyState"
 
+import { DocumentCard } from "./DocumentCard"
+
 export default async function ClientDocumentsPage() {
   const { client, files } = await getClientPortalData()
   if (!client) {
@@ -58,29 +60,7 @@ export default async function ClientDocumentsPage() {
       {/* Shared Documents List */}
       <div className="space-y-4">
         {files.map((file) => (
-          <Card key={file.id} hoverEffect className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 text-xl font-bold">
-                📄
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm">{file.fileName}</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Uploaded on {new Date(file.createdAt).toLocaleDateString()} ·{" "}
-                  {file.size ? `${(file.size / 1024).toFixed(1)} KB` : "External Link"}
-                </p>
-              </div>
-            </div>
-
-            <a
-              href={file.fileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition-colors"
-            >
-              Open Document ↗
-            </a>
-          </Card>
+          <DocumentCard key={file.id} file={file} />
         ))}
 
         {files.length === 0 && (

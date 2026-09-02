@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card"
 import { TableContainer, Table, TableHead, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/ui/Table"
 import { StatusBadge } from "@/components/ui/StatusBadge"
+import { LeaveRow } from "./LeaveRow"
 import { FormField, Select, Input, Textarea } from "@/components/ui/FormField"
 import { Button } from "@/components/ui/Button"
 import { EmptyState } from "@/components/ui/EmptyState"
@@ -185,21 +186,7 @@ export default async function LeavesPage() {
                   </TableHead>
                   <TableBody>
                     {leaves.map((leave) => (
-                      <TableRow key={leave.id}>
-                        <TableCell className="font-semibold text-slate-800">
-                          {leave.type.replace(/_/g, " ")}
-                        </TableCell>
-                        <TableCell className="text-xs text-slate-600 whitespace-nowrap">
-                          {new Date(leave.startDate).toLocaleDateString()} → <br />
-                          {new Date(leave.endDate).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate text-xs text-slate-600" title={leave.reason}>
-                          {leave.reason}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <StatusBadge status={leave.status} size="sm" />
-                        </TableCell>
-                      </TableRow>
+                      <LeaveRow key={leave.id} leave={leave} />
                     ))}
                   </TableBody>
                 </Table>

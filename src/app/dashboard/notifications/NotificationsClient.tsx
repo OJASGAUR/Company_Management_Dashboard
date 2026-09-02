@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, updateNotificationPreferences, broadcastNotificationToAll } from "../actions"
 
+import { RemoveButton } from "@/components/ui/RemoveButton"
+
 export type NotificationItem = {
   id: string
   userId: string
@@ -161,10 +163,11 @@ export default function NotificationsClient({
         {filtered.map((notification) => {
           const style = typeStyle(notification.type)
           const unread = !notification.readAt
-          return <div key={notification.id} className={`rounded-2xl border p-5 transition ${unread ? "border-blue-200 bg-white shadow-sm" : "border-slate-200 bg-white/80"}`}>
+          return <div key={notification.id} className={`group relative rounded-2xl border p-5 transition ${unread ? "border-blue-200 bg-white shadow-sm" : "border-slate-200 bg-white/80"}`}>
+            <RemoveButton onRemove={() => remove(notification.id)} title="Remove notification" />
             <div className="flex gap-4">
               <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-xl ${style.iconBg}`}>{style.icon}</div>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 pr-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase ${style.badge}`}>{style.label}</span>
                   <span className="text-xs text-slate-400">{formatTimestamp(notification.createdAt)}</span>
@@ -175,7 +178,6 @@ export default function NotificationsClient({
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   {notification.link && <a href={notification.link} onClick={() => unread && void markRead(notification.id)} className="text-xs font-bold text-blue-600 hover:text-blue-800">View details →</a>}
                   {unread && <button disabled={busyId === notification.id} onClick={() => void markRead(notification.id)} className="text-xs font-semibold text-slate-600 hover:text-slate-900">Mark read</button>}
-                  <button disabled={busyId === notification.id} onClick={() => void remove(notification.id)} className="text-xs font-semibold text-rose-600 hover:text-rose-800">Delete</button>
                 </div>
               </div>
             </div>

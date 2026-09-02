@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card"
 import { TableContainer, Table, TableHead, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/ui/Table"
 import { StatusBadge } from "@/components/ui/StatusBadge"
+import { DeliverableRow } from "./DeliverableRow"
 import { FormField, Input, Select, Textarea } from "@/components/ui/FormField"
 import { Button } from "@/components/ui/Button"
 import { StatCard } from "@/components/ui/StatCard"
@@ -153,21 +154,7 @@ export default async function OperationsDashboard() {
                   </TableHead>
                   <TableBody>
                     {activeTasks.map((task) => (
-                      <TableRow key={task.id}>
-                        <TableCell>
-                          <p className="font-bold text-slate-900 leading-snug">{task.title}</p>
-                          <p className="text-xs text-slate-500">{task.project?.name || "General Operational"}</p>
-                        </TableCell>
-                        <TableCell className="text-xs font-semibold text-slate-700">
-                          {task.user.name || "Unnamed"}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={task.status} size="sm" />
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-xs text-slate-600">
-                          {task.deadline ? new Date(task.deadline).toLocaleDateString() : "—"}
-                        </TableCell>
-                      </TableRow>
+                      <DeliverableRow key={task.id} task={task} />
                     ))}
                   </TableBody>
                 </Table>
