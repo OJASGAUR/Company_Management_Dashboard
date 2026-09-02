@@ -96,3 +96,40 @@ export async function POST(request: Request) {
     )
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (!EVENT_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Event ID is required" }, { status: 400 })
+    }
+
+    const existing = await prisma.calendarEvent.findUnique({
+      where: { id },
+      select: { id: true },
+    })
+
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "Event not found" }, { status: 404 })
+    }
+
+    await prisma.calendarEvent.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("DELETE /api/calendar failed", error)
+    return NextResponse.json(
+      { success: false, error: "Failed to delete calendar event" },
+      { status: 400 },
+    )
+  }
+}
