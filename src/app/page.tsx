@@ -70,6 +70,45 @@ const features = [
   },
 ]
 
+const heroPillars = [
+  {
+    title: "Workforce & HR",
+    subtitle: "Attendance, leaves & profile management",
+    icon: (
+      <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Z" />
+      </svg>
+    ),
+  },
+  {
+    title: "Task & Project Hub",
+    subtitle: "Kanban boards & real-time milestones",
+    icon: (
+      <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+      </svg>
+    ),
+  },
+  {
+    title: "Financial & Client Portal",
+    subtitle: "Invoicing, contracts & CRM tracking",
+    icon: (
+      <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5h16.5A2.25 2.25 0 0 1 22.5 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H3.75a2.25 2.25 0 0 1-2.25-2.25V6.75A2.25 2.25 0 0 1 3.75 4.5z" />
+      </svg>
+    ),
+  },
+  {
+    title: "Enterprise Defense",
+    subtitle: "Role permissions & audit trails",
+    icon: (
+      <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+      </svg>
+    ),
+  },
+]
+
 const securityPillars = [
   {
     title: "Role-Aware Server Authorization",
@@ -146,7 +185,7 @@ export default function LandingPage() {
 
           <a
             href="#sign-in"
-            className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-700"
+            className="rounded-lg bg-slate-900 px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-700"
           >
             Sign in
           </a>
@@ -155,33 +194,67 @@ export default function LandingPage() {
 
       {/* ── Hero Section + Login ── */}
       <section id="sign-in" className="scroll-mt-20 border-b border-slate-100 bg-slate-50/50">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 sm:px-10 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 sm:px-10 lg:grid-cols-[1fr_1.1fr] lg:py-24">
+          
+          {/* ── Redesigned Left Content Area ── */}
           <div className="max-w-xl">
-            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1 text-xs font-medium text-slate-500 shadow-sm">
-              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Enterprise Operations Platform
-            </p>
-            <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-slate-900 sm:text-5xl lg:text-[3.5rem]">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Unified Enterprise Operating System
+            </div>
+
+            <h1 className="text-4xl font-black leading-[1.1] tracking-tight text-slate-900 sm:text-5xl lg:text-[3.25rem]">
               Run your company.{" "}
-              <span className="text-slate-400">Not the paperwork.</span>
+              <span className="block text-slate-400 font-extrabold mt-1">Not the paperwork.</span>
             </h1>
+
             <p className="mt-5 text-base leading-relaxed text-slate-500 sm:text-lg">
-              Centralize people, projects, attendance, leaves, timelines, and business intelligence — all with role-based access control and enterprise-grade security.
+              A single workspace for workforce management, project execution, time tracking, invoices, and executive intelligence. Built with strict role-based access control.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
-              {["AES-256 Encryption", "Server-Side Authorization", "Audit-Ready Trails"].map((item) => (
-                <span key={item} className="flex items-center gap-1.5">
-                  <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                  </svg>
-                  {item}
-                </span>
+            {/* Feature Highlight Cards Grid */}
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              {heroPillars.map((p) => (
+                <div
+                  key={p.title}
+                  className="flex items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-50">
+                    {p.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900">{p.title}</h3>
+                    <p className="mt-0.5 text-[11px] leading-tight text-slate-400">{p.subtitle}</p>
+                  </div>
+                </div>
               ))}
+            </div>
+
+            {/* Trust Badges */}
+            <div className="mt-8 flex flex-wrap items-center gap-6 border-t border-slate-200/60 pt-6 text-xs font-medium text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                AES-256 Encryption
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                Server-Side Authorization
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                Audit-Ready Logging
+              </span>
             </div>
           </div>
 
-          <div>
+          {/* ── Enlarged Sign In Card ── */}
+          <div className="flex justify-center lg:justify-end">
             <LoginCard role={role} setRole={setRole} />
           </div>
         </div>
@@ -418,20 +491,21 @@ function LoginCard({
   }
 
   return (
-    <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-1 shadow-xl shadow-slate-200/50">
-      <div className="rounded-xl bg-white p-6 sm:p-8">
-        {/* Role Toggle */}
-        <div className="mb-6 flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+    <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-200/60">
+      <div className="rounded-xl bg-white p-7 sm:p-10">
+        
+        {/* Role Toggle Tabs — Larger & Prominent */}
+        <div className="mb-8 flex rounded-xl border border-slate-200 bg-slate-100/80 p-1.5">
           <button
             type="button"
             onClick={() => {
               setRole("employee")
               setError("")
             }}
-            className={`flex-1 rounded-md py-2.5 text-xs font-semibold transition-all ${
+            className={`flex-1 rounded-lg py-3 text-sm font-bold transition-all ${
               role === "employee"
-                ? "bg-slate-900 text-white shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-slate-900 text-white shadow-md"
+                : "text-slate-500 hover:text-slate-900"
             }`}
           >
             Employee / Staff
@@ -442,42 +516,42 @@ function LoginCard({
               setRole("admin")
               setError("")
             }}
-            className={`flex-1 rounded-md py-2.5 text-xs font-semibold transition-all ${
+            className={`flex-1 rounded-lg py-3 text-sm font-bold transition-all ${
               role === "admin"
-                ? "bg-slate-900 text-white shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-slate-900 text-white shadow-md"
+                : "text-slate-500 hover:text-slate-900"
             }`}
           >
             Administrator / HR
           </button>
         </div>
 
-        <h2 className="text-xl font-bold tracking-tight text-slate-900">
+        <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
           {role === "admin" ? "Administrator Access" : "Welcome back"}
         </h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1.5 text-sm text-slate-500">
           {role === "admin"
-            ? "Sign in with your admin credentials."
+            ? "Sign in with your authorized admin credentials."
             : "Sign in with your employee email or ID."}
         </p>
 
-        <form onSubmit={submit} className="mt-6 space-y-4">
+        <form onSubmit={submit} className="mt-8 space-y-5">
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-              {role === "admin" ? "Admin Email or ID" : "Email or Employee ID"}
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-600">
+              {role === "admin" ? "Admin Email or Employee ID" : "Email or Employee ID"}
             </span>
             <input
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               required
               autoComplete="username"
-              placeholder={role === "admin" ? "admin@company.com or SA00001" : "developer@company.com or DEV5001"}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200"
+              placeholder="Enter your email or employee ID"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200"
             />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-slate-600">
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-600">
               Password
             </span>
             <div className="relative">
@@ -487,13 +561,13 @@ function LoginCard({
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                placeholder="••••••••••••"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-14 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200"
+                placeholder="Enter your password"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 pr-14 text-base sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200"
               />
               <button
                 type="button"
                 onClick={() => setShow(!show)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-slate-600"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
               >
                 {show ? "Hide" : "Show"}
               </button>
@@ -503,7 +577,7 @@ function LoginCard({
           {error && (
             <div
               role="alert"
-              className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-600"
+              className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-600"
             >
               <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -514,13 +588,13 @@ function LoginCard({
 
           <button
             disabled={loading}
-            className="w-full rounded-lg bg-slate-900 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-700 active:scale-[0.99] disabled:opacity-60"
+            className="w-full rounded-xl bg-slate-900 py-4 text-base font-bold text-white shadow-lg shadow-slate-900/10 transition-all hover:bg-slate-800 active:scale-[0.99] disabled:opacity-60"
           >
-            {loading ? "Authenticating…" : `Sign in as ${role === "admin" ? "Administrator" : "Employee"}`}
+            {loading ? "Authenticating..." : `Sign in as ${role === "admin" ? "Administrator" : "Employee"}`}
           </button>
         </form>
 
-        <p className="mt-5 text-center text-[11px] text-slate-400">
+        <p className="mt-6 text-center text-xs text-slate-400 font-medium">
           Authorized personnel only · Session secured with HTTPS
         </p>
       </div>
