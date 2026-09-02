@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 enum Role {
@@ -309,13 +309,13 @@ model CalendarEvent {
   location         String?
   isRecurring      Boolean  @default(false)
   recurrenceRule   String?
-  metadata         String?  
+  metadata         String?
   createdBy        String?
   externalProvider String?
   externalEventId  String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-  
+
   @@index([startTime])
   @@index([category])
 }
@@ -323,7 +323,7 @@ model CalendarEvent {
 model CalendarIntegration {
   id                 String   @id @default(cuid())
   userId             String
-  provider           String   
+  provider           String
   accessToken        String
   refreshToken       String?
   tokenExpiresAt     DateTime?
