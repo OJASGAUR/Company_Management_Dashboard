@@ -1,3 +1,5 @@
+import { CalendarEvent, CalendarIntegration } from '@prisma/client';
+
 export enum EventCategory {
   PUBLIC_HOLIDAY = 'public_holiday',
   EMPLOYEE_BIRTHDAY = 'employee_birthday',
@@ -15,24 +17,7 @@ export enum CalendarProvider {
   OUTLOOK = 'outlook',
 }
 
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  description?: string | null;
-  category: EventCategory;
-  startTime: Date;
-  endTime?: Date | null;
-  allDay: boolean;
-  location?: string | null;
-  isRecurring: boolean;
-  recurrenceRule?: string | null;
-  metadata: Record<string, unknown>;
-  createdBy?: string | null;
-  externalProvider?: CalendarProvider | null;
-  externalEventId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export type { CalendarEvent, CalendarIntegration };
 
 export interface CreateEventInput {
   title: string;
@@ -57,16 +42,7 @@ export interface EventFilters {
   createdBy?: string;
 }
 
-export interface CalendarIntegration {
-  id: string;
-  userId: string;
-  provider: CalendarProvider;
-  accessToken: string;
-  refreshToken?: string | null;
-  tokenExpiresAt?: Date | null;
-  externalCalendarId?: string | null;
-  connectedAt: Date;
-}
+
 
 /**
  * Common contract both Google and Outlook sync services implement,

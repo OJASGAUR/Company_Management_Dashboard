@@ -47,7 +47,7 @@ export default function DashboardClient({ stats }: { stats: any }) {
           </h1>
           <p className="text-slate-500 font-medium">
             {isAdmin 
-              ? `You are viewing the ${user.role.replace('_', ' ')} Management Dashboard.`
+              ? `You are viewing the ${user.role?.replace('_', ' ') || 'Admin'} Management Dashboard.`
               : `Here's what's happening today in your workspace.`}
           </p>
         </motion.div>

@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // GET /api/calendar - Retrieve calendar events
 export async function GET(request: Request) {
@@ -35,16 +33,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, description, eventType, startTime, endTime, isAllDay } = body;
+    const { title, description, category, startTime, endTime, allDay } = body;
 
     const newEvent = await prisma.calendarEvent.create({
       data: {
         title,
         description,
-        eventType,
+        category: category || "team_meeting",
         startTime: new Date(startTime),
         endTime: new Date(endTime),
-        isAllDay: Boolean(isAllDay),
+        allDay: Boolean(allDay),
       },
     });
 

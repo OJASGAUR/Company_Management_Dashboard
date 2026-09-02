@@ -314,3 +314,12 @@ export async function broadcastNotificationToAll(formData: FormData) {
   revalidatePath("/dashboard")
   return { success: true, totalSent: users.length }
 }
+
+export async function getUpcomingCalendarEvents() {
+  const user = await requireAuth();
+  return prisma.calendarEvent.findMany({
+    where: { startTime: { gte: new Date() } },
+    orderBy: { startTime: "asc" },
+    take: 10,
+  });
+}

@@ -1,7 +1,8 @@
 "use client"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { getTasks, updateTaskStatus, createTask } from "../actions"
+import { getTasks, updateTaskStatus, createTask, getUpcomingCalendarEvents } from "../actions"
+import { CalendarEvent } from "@prisma/client"
 
 type Task = { id: string; title: string; description: string | null; status: string; priority: string }
 
@@ -9,12 +10,14 @@ const COLUMNS = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'COMPLETED']
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
+  const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [showNewTask, setShowNewTask] = useState(false)
 
   useEffect(() => {
-    getTasks().then(data => {
-      setTasks(data)
+    Promise.all([getTasks(), getUpcomingCalendarEvents()]).then(([taskData, eventData]) => {
+      setTasks(taskData)
+      setEvents(eventData)
       setLoading(false)
     })
   }, [])
@@ -28,14 +31,12 @@ export default function TasksPage() {
     const taskId = e.dataTransfer.getData("taskId")
     if (!taskId) return
 
-    // Optimistic UI update
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status } : t))
     
     try {
       await updateTaskStatus(taskId, status)
     } catch (error) {
       console.error(error)
-      // Revert if failed (simplified for now)
     }
   }
 
@@ -44,11 +45,11 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="p-8 h-[calc(100vh-64px)] overflow-hidden flex flex-col font-sans">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex justify-between items-end">
+    <div className="p-8 h-[calc(100vh-64px)] overflow-hidden flex flex-col font-sans space-y-6">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex justify-between items-end shrink-0">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Task Board</h1>
-          <p className="text-slate-500">Drag and drop tasks across columns to update their status.</p>
+          <p className="text-slate-500">Manage your tasks and upcoming delivery deadlines.</p>
         </div>
         <button 
           onClick={() => setShowNewTask(!showNewTask)}
@@ -58,12 +59,35 @@ export default function TasksPage() {
         </button>
       </motion.div>
 
+      {/* Calendar Bar */}
+      {!loading && events.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }} 
+          animate={{ opacity: 1, height: 'auto' }}
+          className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex gap-4 overflow-x-auto shrink-0 shadow-sm items-center"
+        >
+          <div className="shrink-0 flex items-center justify-center bg-indigo-100 text-indigo-700 w-12 h-12 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div className="flex gap-4">
+            {events.map(event => (
+              <div key={event.id} className="bg-white px-4 py-3 rounded-xl border border-indigo-50 shadow-sm shrink-0 min-w-[200px]">
+                <p className="text-[10px] uppercase font-bold text-indigo-500 tracking-wider mb-1">{event.category.replace(/_/g, ' ')}</p>
+                <h4 className="font-bold text-slate-800 text-sm truncate">{event.title}</h4>
+                <p className="text-xs text-slate-500 mt-1">{new Date(event.startTime).toLocaleDateString()} {event.allDay ? "(All Day)" : new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {showNewTask && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-6">
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="shrink-0">
           <form action={async (formData) => {
             await createTask(formData)
             setShowNewTask(false)
-            // Reload tasks manually since it's a client component
             const newTasks = await getTasks()
             setTasks(newTasks)
           }} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -133,7 +157,7 @@ export default function TasksPage() {
                           {task.priority}
                         </span>
                         <button className="text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                          ⋮
+                          ?
                         </button>
                       </div>
                       <h4 className="font-bold text-slate-800 mb-1 leading-snug">{task.title}</h4>
