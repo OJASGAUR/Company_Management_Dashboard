@@ -21,7 +21,6 @@ export async function createUser(formData: FormData) {
   const actor = await requireRole(permissions.manageUsers)
   const name = requiredString(formData.get("name"), "Name", 120)
   const emailAddress = email(formData.get("email"))
-  const password = requiredString(formData.get("password"), "Password", 200)
   const role = enumValue(formData.get("role"), "Role", Object.values(Role))
   if (!canGrantRole(actor.role, role)) throw new Error("You are not allowed to grant this role")
   const department = optionalString(formData.get("department"), 120)
@@ -46,12 +45,46 @@ export async function createUser(formData: FormData) {
   const bankIfsc = optionalString(formData.get("bankIfsc"), 30)
   const upiId = optionalString(formData.get("upiId"), 120)
 
-  if (password.length < 8) throw new Error("Password must be at least 8 characters")
-  const existingUser = await prisma.user.findFirst({ where: { OR: [{ email: emailAddress }, ...(companyEmail ? [{ companyEmail }] : [])] }, select: { id: true } })
+  const existingUser = await prisma.user.findFirst({
+    where: { OR: [{ email: emailAddress }, ...(companyEmail ? [{ companyEmail }] : [])] },
+    select: { id: true },
+  })
   if (existingUser) throw new Error("Email or company email already exists")
-  const hashedPassword = await bcrypt.hash(password, 12)
+
   const employeeId = `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
-  const created = await prisma.user.create({ data: { name, email: emailAddress, password: hashedPassword, role, department, designation, employeeId, joiningDate, isActive: true, onboardingStatus: ONBOARDING_IN_PROGRESS, companyEmail, phone, personalEmail, dateOfBirth, gender, address, city, state, postalCode, emergencyName, emergencyPhone, education, experience, bankAccountName, bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null, bankName, bankIfsc, upiId }, select: { id: true, employeeId: true } })
+  const created = await prisma.user.create({
+    data: {
+      name,
+      email: emailAddress,
+      password: await bcrypt.hash(randomBytes(32).toString("hex"), 12),
+      role,
+      department,
+      designation,
+      employeeId,
+      joiningDate,
+      isActive: true,
+      onboardingStatus: ONBOARDING_IN_PROGRESS,
+      companyEmail,
+      phone,
+      personalEmail,
+      dateOfBirth,
+      gender,
+      address,
+      city,
+      state,
+      postalCode,
+      emergencyName,
+      emergencyPhone,
+      education,
+      experience,
+      bankAccountName,
+      bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null,
+      bankName,
+      bankIfsc,
+      upiId,
+    },
+    select: { id: true, employeeId: true },
+  })
 
   const rawSetupToken = randomBytes(32).toString("hex")
   const setupTokenHash = createHash("sha256").update(rawSetupToken).digest("hex")
