@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import { createHash, randomBytes } from "node:crypto"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { Role } from "@prisma/client"
@@ -10,6 +11,7 @@ import { permissions, canGrantRole } from "@/lib/auth/permissions"
 import { encryptSecret } from "@/lib/crypto"
 import { recordAudit } from "@/lib/audit"
 import { notifyUser } from "@/lib/notifications"
+import { sendOnboardingCredentialsEmail } from "@/lib/onboarding-email"
 import { email, enumValue, id, optionalDate, optionalString, requiredString } from "@/lib/validation"
 
 const ONBOARDING_IN_PROGRESS = "IN_PROGRESS"
@@ -50,7 +52,28 @@ export async function createUser(formData: FormData) {
   const hashedPassword = await bcrypt.hash(password, 12)
   const employeeId = `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
   const created = await prisma.user.create({ data: { name, email: emailAddress, password: hashedPassword, role, department, designation, employeeId, joiningDate, isActive: true, onboardingStatus: ONBOARDING_IN_PROGRESS, companyEmail, phone, personalEmail, dateOfBirth, gender, address, city, state, postalCode, emergencyName, emergencyPhone, education, experience, bankAccountName, bankAccountNumber: bankAccountNumberRaw ? encryptSecret(bankAccountNumberRaw) : null, bankName, bankIfsc, upiId }, select: { id: true, employeeId: true } })
-  await Promise.allSettled([recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role } }), notifyUser(created.id, "Welcome to the company portal", "Your employee account has been created. Complete your onboarding checklist to finish setup.")])
+
+  const rawSetupToken = randomBytes(32).toString("hex")
+  const setupTokenHash = createHash("sha256").update(rawSetupToken).digest("hex")
+  const setupExpires = new Date(Date.now() + 48 * 60 * 60 * 1000)
+  const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://localhost:3000"
+  const setupLink = `${appUrl}/setup/password?token=${encodeURIComponent(rawSetupToken)}`
+
+  await prisma.verificationToken.deleteMany({ where: { identifier: `onboarding:${created.id}` } })
+  await prisma.verificationToken.create({
+    data: {
+      identifier: `onboarding:${created.id}`,
+      token: setupTokenHash,
+      expires: setupExpires,
+    },
+  })
+
+  await Promise.allSettled([
+    recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role } }),
+    notifyUser(created.id, "Welcome to the company portal", "Your employee account has been created. Set your password using the secure setup link sent to your email.", "/setup/password"),
+    sendOnboardingCredentialsEmail({ toEmail: emailAddress, recipientName: name, employeeId: created.employeeId, setupLink }),
+  ])
+
   revalidatePath("/admin/users")
   redirect("/admin/users")
 }
