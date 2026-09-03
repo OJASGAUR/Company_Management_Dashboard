@@ -1,0 +1,1 @@
+Notifications are available at /dashboard/notifications for authenticated users. The sidebar should expose this route for every dashboard role.
