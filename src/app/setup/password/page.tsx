@@ -1,21 +1,15 @@
 "use client"
 
+import { useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { setOnboardingPassword } from "./actions"
 
-export default function PasswordSetupPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
-  const [ready, setReady] = useState(false)
-  const [token, setToken] = useState("")
+export default function PasswordSetupPage() {
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token") || ""
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-
-  useState(() => {
-    searchParams.then((params) => {
-      setToken(params.token || "")
-      setReady(true)
-    })
-  })
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -32,10 +26,6 @@ export default function PasswordSetupPage({ searchParams }: { searchParams: Prom
       setError(result.error || "Unable to set password.")
     }
     setSubmitting(false)
-  }
-
-  if (!ready) {
-    return <main className="flex min-h-screen items-center justify-center bg-slate-950 p-6 text-white">Loading secure setup…</main>
   }
 
   return (
@@ -56,6 +46,7 @@ export default function PasswordSetupPage({ searchParams }: { searchParams: Prom
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            {!token && <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm font-semibold text-rose-300">Invalid setup link.</div>}
             {error && <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm font-semibold text-rose-300">{error}</div>}
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">New Password</span>
