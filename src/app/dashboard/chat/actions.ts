@@ -27,7 +27,12 @@ export async function sendDirectMessage(formData: FormData) {
   })
 
   await Promise.allSettled([
-    notifyUser(receiver.id, "New message", `New message from ${user.name || user.email || "a colleague"}`),
+    notifyUser(
+      receiver.id,
+      "New message",
+      `New message from ${user.name || user.email || "a colleague"}`,
+      "/dashboard/chat",
+    ),
     recordAudit({ actorId: user.id, action: "SEND_MESSAGE", entity: "Message", entityId: message.id }),
   ])
 
