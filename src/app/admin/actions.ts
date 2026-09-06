@@ -99,11 +99,11 @@ export async function createUser(formData: FormData) {
   await Promise.allSettled([
     recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role } }),
     notifyUser(created.id, "Welcome to the company portal", "Your employee account has been created. Set your password using the secure setup link sent to your email.", "/setup/password"),
-    sendOnboardingCredentialsEmail({ toEmail: emailAddress, recipientName: name, employeeId: created.employeeId, setupLink }),
+    sendOnboardingCredentialsEmail({ toEmail: emailAddress, recipientName: name, employeeId: created.employeeId ?? "", setupLink }),
   ])
 
   revalidatePath("/admin/users")
-  return { success: true, id: created.id, employeeId: created.employeeId }
+  return { success: true, id: created.id, employeeId: created.employeeId ?? "" }
 }
 
 export async function setUserActive(formData: FormData) {
