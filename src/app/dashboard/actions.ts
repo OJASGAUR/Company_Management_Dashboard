@@ -84,6 +84,17 @@ export async function deleteTask(taskId: string) {
   revalidatePath("/dashboard/tasks"); revalidatePath("/dashboard"); revalidatePath("/dashboard/operations"); return { success: true }
 }
 
+export async function deleteAsset(assetId: string) {
+  const user = await requireAuth()
+  const safeId = id(assetId, "Asset ID")
+  const canManage = user.role === Role.SUPER_ADMIN || user.role === Role.DIRECTOR || user.role === Role.OPERATIONS_MANAGER
+  if (!canManage) throw new Error("Forbidden")
+  const asset = await prisma.asset.findUnique({ where: { id: safeId }, select: { id: true } })
+  if (!asset) throw new Error("Asset not found")
+  await prisma.asset.delete({ where: { id: safeId } })
+  revalidatePath("/dashboard/assets"); return { success: true }
+}
+
 export async function applyLeave(formData: FormData) {
   const user = await requireAuth(), type = enumValue(formData.get("type"), "Leave type", LEAVE_TYPES)
   const startDate = date(formData.get("startDate"), "Start date"), endDate = date(formData.get("endDate"), "End date")
@@ -91,6 +102,18 @@ export async function applyLeave(formData: FormData) {
   if (endDate < startDate) throw new Error("End date cannot be before start date")
   await prisma.leave.create({ data: { userId: user.id, type, startDate, endDate, reason, status: "PENDING" } })
   revalidatePath("/dashboard/leaves"); revalidatePath("/dashboard")
+}
+
+export async function deleteLeave(leaveId: string) {
+  const user = await requireAuth()
+  const safeId = id(leaveId, "Leave ID")
+  const leave = await prisma.leave.findUnique({ where: { id: safeId }, select: { id: true, userId: true, status: true } })
+  if (!leave) throw new Error("Leave request not found")
+  const isManager = MANAGER_ROLES.includes(user.role)
+  if (leave.userId !== user.id && !isManager) throw new Error("Forbidden")
+  if (leave.status !== "PENDING") throw new Error("Only pending leave requests can be removed")
+  await prisma.leave.delete({ where: { id: safeId } })
+  revalidatePath("/dashboard/leaves"); revalidatePath("/dashboard"); return { success: true }
 }
 
 export async function assignTask(formData: FormData) {
@@ -101,7 +124,7 @@ export async function assignTask(formData: FormData) {
   const assignee = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true, email: true, isActive: true } })
   if (!assignee || !assignee.isActive) throw new Error("Assignee not found or inactive")
   const projectId = projectIdRaw ? id(projectIdRaw, "Project ID") : null
-  if (projectId && !(await prisma.project.findUnique({ where: { id: projectId }, select: { id: projectId } }))) throw new Error("Project not found")
+  if (projectId && !(await prisma.project.findUnique({ where: { id: projectId }, select: { id: true } }))) throw new Error("Project not found")
   await prisma.task.create({ data: { title, description, priority, deadline, userId, assignedById: actor.id, projectId, status: "TODO" } })
   await createNotification({ userId: assignee.id, title: `New task assigned: ${title}`, message: `You have been assigned a new ${priority.toLowerCase()} priority task.${deadline ? ` Deadline: ${deadline.toLocaleDateString()}.` : ""}${description ? ` ${description}` : ""}`, type: "TASK", link: "/dashboard/tasks" })
   revalidatePath("/dashboard/operations"); revalidatePath("/dashboard/tasks")
@@ -140,6 +163,15 @@ export async function createProject(formData: FormData) {
   await prisma.project.create({ data: { name, description, clientName, startDate, endDate, status: "PLANNING" } }); revalidatePath("/dashboard/projects")
 }
 
+export async function deleteProject(projectId: string) {
+  await requirePermission("manageProjects")
+  const safeId = id(projectId, "Project ID")
+  const project = await prisma.project.findUnique({ where: { id: safeId }, select: { id: true } })
+  if (!project) throw new Error("Project not found")
+  await prisma.project.delete({ where: { id: safeId } })
+  revalidatePath("/dashboard/projects"); revalidatePath("/dashboard/operations"); return { success: true }
+}
+
 export async function createTask(formData: FormData) {
   const user = await requireAuth(); if (user.role === Role.CLIENT) throw new Error("Forbidden")
   const title = requiredString(formData.get("title"), "Title", 200), description = optionalString(formData.get("description"), 5000), priority = enumValue(formData.get("priority") || "MEDIUM", "Priority", TASK_PRIORITIES)
@@ -165,7 +197,7 @@ export async function createNotification({ userId, title, message, type = "INFO"
   const recipient = await prisma.user.findUnique({ where: { id: safeUserId }, select: { id: true, name: true, email: true, isActive: true, emailTasks: true, emailLeaves: true, emailAnnouncements: true } })
   if (!recipient || !recipient.isActive) throw new Error("Notification recipient is unavailable")
   const notification = await prisma.notification.create({ data: { userId: recipient.id, title: safeTitle, body: safeMessage, type: safeType, link: link || null } })
-  let shouldSendEmail = safeType === "TASK" ? recipient.emailTasks : safeType === "LEAVE" ? recipient.emailLeaves : recipient.emailAnnouncements
+  const shouldSendEmail = safeType === "TASK" ? recipient.emailTasks : safeType === "LEAVE" ? recipient.emailLeaves : recipient.emailAnnouncements
   if (recipient.email && shouldSendEmail) await sendNotificationEmail({ toEmail: recipient.email, recipientName: recipient.name, title: safeTitle, message: safeMessage, type: safeType, link: link || null })
   return { success: true, notificationId: notification.id }
 }
