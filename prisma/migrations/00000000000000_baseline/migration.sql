@@ -1,0 +1,5 @@
+-- Baseline migration for the pre-existing college-project PostgreSQL database.
+-- The database was created before Prisma migration history was introduced.
+-- Existing production data/schema must be preserved; this migration intentionally
+-- contains no SQL operations. Mark this migration as applied on an existing
+-- database with `npx prisma migrate resolve --applied 00000000000000_baseline`.
