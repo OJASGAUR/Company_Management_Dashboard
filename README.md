@@ -171,3 +171,5 @@ npm run build
 ```
 
 The repository also contains `.github/workflows/ci.yml` for automated validation on pushes and pull requests to `main`.
+
+<!-- deployment trigger -->
