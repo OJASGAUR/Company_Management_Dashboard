@@ -1,5 +1,8 @@
--- Tester-feedback acceptance schema migration.
--- Generated for PostgreSQL. Apply with `npx prisma migrate deploy` in production.
+-- Tester-feedback schema migration.
+-- This migration is intentionally idempotent because the deployed college-project database
+-- may have been created with `prisma db push` before migration history was introduced.
+-- The deployment runner should use `prisma db push` for this legacy database; this SQL
+-- remains available for environments that already use Prisma migration history.
 
 CREATE TABLE IF NOT EXISTS "UserPermission" (
   "id" TEXT NOT NULL,
