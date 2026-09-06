@@ -5,9 +5,28 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card"
 import { FormField, Input, Select, Textarea } from "@/components/ui/FormField"
 import { Button } from "@/components/ui/Button"
-import { ACCESS_KEYS, setUserPermission, saveOfferLetterTemplate, createDomain, updateDomain, recordPayment } from "./actions"
+import { setUserPermission, saveOfferLetterTemplate, createDomain, updateDomain, recordPayment } from "./actions"
 
-const LABELS: Record<typeof ACCESS_KEYS[number], string> = {
+type AccessKey =
+  | "manageUsers"
+  | "manageProjects"
+  | "assignTasks"
+  | "approveLeaves"
+  | "manageFinance"
+  | "manageClients"
+  | "manageSystem"
+
+const ACCESS_KEYS: readonly AccessKey[] = [
+  "manageUsers",
+  "manageProjects",
+  "assignTasks",
+  "approveLeaves",
+  "manageFinance",
+  "manageClients",
+  "manageSystem",
+]
+
+const LABELS: Record<AccessKey, string> = {
   manageUsers: "Employee & user management",
   manageProjects: "Project management",
   assignTasks: "Task assignment",
