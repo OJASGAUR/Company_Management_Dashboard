@@ -136,7 +136,8 @@ export async function createEmployee(formData: FormData) {
   const role = enumValue(formData.get("role"), "Role", ALL_ROLES), department = optionalString(formData.get("department"), 120), rawPassword = requiredString(formData.get("password"), "Password", 200)
   if (rawPassword.length < 8) throw new Error("Password must be at least 8 characters")
   if (await prisma.user.findFirst({ where: { OR: [{ email: emailAddress }, { employeeId }] }, select: { id: true } })) throw new Error("Email or employee ID already exists")
-  if (actor.role !== Role.SUPER_ADMIN && ![Role.EMPLOYEE, Role.DEVELOPER, Role.DESIGNER, Role.TESTER, Role.TEAM_LEAD, Role.ACCOUNTS].includes(role)) throw new Error("You are not allowed to grant this role")
+  const hrAllowedRoles: Role[] = [Role.EMPLOYEE, Role.DEVELOPER, Role.DESIGNER, Role.TESTER, Role.TEAM_LEAD, Role.ACCOUNTS]
+  if (actor.role !== Role.SUPER_ADMIN && !hrAllowedRoles.includes(role)) throw new Error("You are not allowed to grant this role")
   await prisma.user.create({ data: { name, email: emailAddress, employeeId, role, department, password: await bcrypt.hash(rawPassword, 12) } })
   revalidatePath("/dashboard/operations")
 }
@@ -198,14 +199,14 @@ export async function createNotification({ userId, title, message, type = "INFO"
   if (!recipient || !recipient.isActive) throw new Error("Notification recipient is unavailable")
   const notification = await prisma.notification.create({ data: { userId: recipient.id, title: safeTitle, body: safeMessage, type: safeType, link: link || null } })
   const shouldSendEmail = safeType === "TASK" ? recipient.emailTasks : safeType === "LEAVE" ? recipient.emailLeaves : recipient.emailAnnouncements
-  if (recipient.email && shouldSendEmail) await sendNotificationEmail({ toEmail: recipient.email, recipientName: recipient.name, title: safeTitle, message: safeMessage, type: safeType, link: link || null })
+  if (recipient.email && shouldSendEmail) await sendNotificationEmail({ toEmail: recipient.email, recipientName: recipient.name ?? "Employee", title: safeTitle, message: safeMessage, type: safeType, link: link || null })
   return { success: true, notificationId: notification.id }
 }
 
 export async function broadcastNotificationToAll(formData: FormData) {
   const actor = await requireAuth(); if (!BROADCAST_ROLES.includes(actor.role)) throw new Error("Only management roles can broadcast notifications")
-  const title = requiredString(formData.get("title"), "Title", 200), message = requiredString(formData.get("message"), "Message", 4000), type = enumValue(formData.get("type") || "INFO", "Type", NOTIFICATION_TYPES)
+  const title = requiredString(formData.get("title"), "Title", 200), message = requiredString(formData.get("message"), "Message", 4000), type = enumValue(formData.get("type") || "INFO", "Type", NOTIFICATION_TYPES), link = optionalString(formData.get("link"), 500)
   const users = await prisma.user.findMany({ where: { isActive: true }, select: { id: true, email: true, name: true, emailAnnouncements: true } })
-  await prisma.notification.createMany({ data: users.map((u) => ({ userId: u.id, title, body: message, type, link: null })) })
-  return { success: true, recipientCount: users.length, actorId: actor.id }
+  await prisma.notification.createMany({ data: users.map((u) => ({ userId: u.id, title, body: message, type, link: link || null })) })
+  return { success: true, totalSent: users.length, recipientCount: users.length, actorId: actor.id }
 }
