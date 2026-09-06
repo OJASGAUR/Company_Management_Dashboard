@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { requireRole } from "@/lib/auth/require-role"
-import { permissions, canGrantRole } from "@/lib/auth/permissions"
+import { canGrantRole } from "@/lib/auth/permissions"
 import { id, requiredString } from "@/lib/validation"
 
 export const ACCESS_KEYS = [
@@ -17,11 +17,13 @@ export const ACCESS_KEYS = [
   "manageSystem",
 ] as const
 
+type AccessKey = typeof ACCESS_KEYS[number]
+
 export async function setUserPermission(formData: FormData) {
   const actor = await requireRole([Role.SUPER_ADMIN])
   const userId = id(requiredString(formData.get("userId"), "User ID"), "User ID")
   const permission = requiredString(formData.get("permission"), "Permission", 80)
-  if (!ACCESS_KEYS.includes(permission as typeof ACCESS_KEYS[number])) throw new Error("Unknown permission")
+  if (!ACCESS_KEYS.includes(permission as AccessKey)) throw new Error("Unknown permission")
   const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true, isActive: true } })
   if (!target || !target.isActive) throw new Error("Employee not found or inactive")
   if (!canGrantRole(actor.role, target.role)) throw new Error("You cannot manage this role")
