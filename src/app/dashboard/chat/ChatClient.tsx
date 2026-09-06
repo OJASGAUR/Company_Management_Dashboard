@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { addGroupMember, createMessageGroup, sendDirectMessage, sendGroupMessage } from "./actions"
 import { Badge } from "@/components/ui/Badge"
 
-interface User { id: string; name: string | null; role: string }
+interface User { id: string; name: string | null; email: string | null; role: string }
 interface Message { id: string; senderId: string; receiverId: string | null; groupId: string | null; content: string; attachmentUrl: string | null; attachmentName: string | null; timestamp: Date }
 interface Group { id: string; name: string; members: { user: User }[] }
 
