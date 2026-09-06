@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/daily-anniversaries", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/monthly-backup", "schedule": "0 2 1 * *" }
+  ]
+}
