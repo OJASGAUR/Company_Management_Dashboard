@@ -75,6 +75,11 @@ model User {
   directReports     User[]           @relation("ManagerReports")
   notifications     Notification[]
   auditLogs         AuditLog[]       @relation("AuditActor")
+  permissions       UserPermission[]
+  createdGroups     MessageGroup[]   @relation("CreatedGroups")
+  groupMemberships  MessageGroupMember[]
+  createdOfferTemplates OfferLetterTemplate[]
+  createdBackups    BackupSnapshot[] @relation("CreatedBackups")
 
   emailTasks         Boolean @default(true)
   emailLeaves        Boolean @default(true)
@@ -87,6 +92,19 @@ model User {
   @@index([role])
   @@index([managerId])
   @@index([isActive])
+  @@index([dateOfBirth])
+  @@index([joiningDate])
+}
+
+model UserPermission {
+  id          String   @id @default(cuid())
+  userId      String
+  permission  String
+  enabled     Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, permission])
+  @@index([permission, enabled])
 }
 
 model Attendance {
@@ -124,6 +142,9 @@ model Project {
   tasks Task[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  @@index([name])
+  @@index([clientName])
+  @@index([status])
 }
 
 model Task {
@@ -144,6 +165,8 @@ model Task {
   updatedAt DateTime @updatedAt
   @@index([userId, status])
   @@index([projectId])
+  @@index([title])
+  @@index([priority])
 }
 
 model TimeLog {
@@ -165,11 +188,37 @@ model Message {
   receiverId String?
   groupId String?
   content String
+  attachmentUrl String?
+  attachmentName String?
   timestamp DateTime @default(now())
   sender User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   receiver User? @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  group MessageGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   @@index([senderId, timestamp])
   @@index([receiverId, timestamp])
+  @@index([groupId, timestamp])
+}
+
+model MessageGroup {
+  id          String   @id @default(cuid())
+  name        String
+  createdById String
+  createdAt   DateTime @default(now())
+  createdBy   User     @relation("CreatedGroups", fields: [createdById], references: [id], onDelete: Cascade)
+  members     MessageGroupMember[]
+  messages    Message[]
+  @@index([createdById])
+}
+
+model MessageGroupMember {
+  id        String       @id @default(cuid())
+  groupId   String
+  userId    String
+  joinedAt  DateTime     @default(now())
+  group     MessageGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([groupId, userId])
+  @@index([userId])
 }
 
 model Event {
@@ -198,11 +247,28 @@ model Invoice {
   id String @id @default(cuid())
   clientId String?
   amount Float
+  gstRate Float @default(18)
   status String
   dueDate DateTime
   createdAt DateTime @default(now())
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  payments Payment[]
   @@index([clientId])
   @@index([status, dueDate])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  amount    Float
+  status    String
+  paidAt    DateTime?
+  reference String?
+  notes     String?
+  createdAt DateTime @default(now())
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  @@index([invoiceId, paidAt])
+  @@index([status])
 }
 
 model Client {
@@ -213,8 +279,10 @@ model Client {
   phone String?
   createdAt DateTime @default(now())
   files FileRecord[]
+  invoices Invoice[]
   @@index([company])
   @@index([email])
+  @@index([name])
 }
 
 model Domain {
@@ -224,7 +292,10 @@ model Domain {
   expiryDate DateTime
   status String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   @@index([expiryDate])
+  @@index([url])
+  @@index([status])
 }
 
 model FileRecord {
@@ -238,6 +309,7 @@ model FileRecord {
   createdAt DateTime @default(now())
   @@index([uploaderId, createdAt])
   @@index([clientId, createdAt])
+  @@index([fileName])
 }
 
 model Notification {
@@ -247,10 +319,34 @@ model Notification {
   body String
   type String @default("INFO")
   link String?
+  dedupeKey String? @unique
   readAt DateTime?
   createdAt DateTime @default(now())
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, readAt, createdAt])
+}
+
+model OfferLetterTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  content     String
+  createdById String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  @@index([isActive])
+}
+
+model BackupSnapshot {
+  id          String   @id @default(cuid())
+  period      String   @unique
+  format      String   @default("JSON")
+  data        Json
+  createdById String?
+  createdAt   DateTime @default(now())
+  createdBy   User?    @relation("CreatedBackups", fields: [createdById], references: [id], onDelete: SetNull)
+  @@index([createdAt])
 }
 
 model AuditLog {
@@ -315,7 +411,6 @@ model CalendarEvent {
   externalEventId  String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-
   @@index([startTime])
   @@index([category])
 }
@@ -329,6 +424,5 @@ model CalendarIntegration {
   tokenExpiresAt     DateTime?
   externalCalendarId String?
   connectedAt        DateTime @default(now())
-
   @@index([userId])
 }
