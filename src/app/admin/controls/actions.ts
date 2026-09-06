@@ -52,7 +52,7 @@ export async function saveOfferLetterTemplate(formData: FormData) {
 }
 
 export async function createDomain(formData: FormData) {
-  const actor = await requireRole([Role.SUPER_ADMIN])
+  await requireRole([Role.SUPER_ADMIN])
   const url = requiredString(formData.get("url"), "Domain", 500)
   const provider = requiredString(formData.get("provider"), "Provider", 120)
   const expiry = requiredString(formData.get("expiryDate"), "Expiry date", 40)
@@ -79,7 +79,7 @@ export async function updateDomain(formData: FormData) {
 }
 
 export async function recordPayment(formData: FormData) {
-  const actor = await requireRole([Role.SUPER_ADMIN, Role.DIRECTOR, Role.ACCOUNTS])
+  await requireRole([Role.SUPER_ADMIN, Role.DIRECTOR, Role.ACCOUNTS])
   const invoiceId = id(requiredString(formData.get("invoiceId"), "Invoice ID"), "Invoice ID")
   const amount = Number(requiredString(formData.get("amount"), "Payment amount", 40))
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Invalid payment amount")
@@ -99,5 +99,4 @@ export async function recordPayment(formData: FormData) {
   revalidatePath("/dashboard/tools")
   revalidatePath("/dashboard/client/invoices")
   revalidatePath("/admin/controls")
-  return { success: true, actorId: actor.id }
 }
