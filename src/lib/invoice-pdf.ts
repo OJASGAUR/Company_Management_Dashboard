@@ -54,7 +54,7 @@ export function createInvoicePdf({
     "0 -15 Td",
     `(Attn: ${escapePdfText(clientName)} | ${escapePdfText(clientEmail)}) Tj`,
     "0 -32 Td",
-    `(Issue date: ${escapePdfText(date(createdAt))}) Tj",
+    `(Issue date: ${escapePdfText(date(createdAt))}) Tj`,
     "0 -15 Td",
     `(Due date: ${escapePdfText(date(dueDate))}) Tj`,
     "ET",
