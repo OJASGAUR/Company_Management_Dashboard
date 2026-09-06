@@ -319,11 +319,12 @@ model Notification {
   body String
   type String @default("INFO")
   link String?
-  dedupeKey String? @unique
+  dedupeKey String?
   readAt DateTime?
   createdAt DateTime @default(now())
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, readAt, createdAt])
+  @@index([dedupeKey])
 }
 
 model OfferLetterTemplate {
