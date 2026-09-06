@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { createHash, randomBytes } from "node:crypto"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 import { Role } from "@prisma/client"
 import { requireRole } from "@/lib/auth/require-role"
 import { permissions, canGrantRole } from "@/lib/auth/permissions"
@@ -51,7 +50,7 @@ export async function createUser(formData: FormData) {
   })
   if (existingUser) throw new Error("Email or company email already exists")
 
-  const employeeId = `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
+  const employeeId = `EMP-${randomBytes(4).toString("hex").toUpperCase()}`
   const created = await prisma.user.create({
     data: {
       name,
@@ -94,11 +93,7 @@ export async function createUser(formData: FormData) {
 
   await prisma.verificationToken.deleteMany({ where: { identifier: `onboarding:${created.id}` } })
   await prisma.verificationToken.create({
-    data: {
-      identifier: `onboarding:${created.id}`,
-      token: setupTokenHash,
-      expires: setupExpires,
-    },
+    data: { identifier: `onboarding:${created.id}`, token: setupTokenHash, expires: setupExpires },
   })
 
   await Promise.allSettled([
@@ -108,7 +103,7 @@ export async function createUser(formData: FormData) {
   ])
 
   revalidatePath("/admin/users")
-  redirect("/admin/users")
+  return { success: true, id: created.id, employeeId: created.employeeId }
 }
 
 export async function setUserActive(formData: FormData) {
