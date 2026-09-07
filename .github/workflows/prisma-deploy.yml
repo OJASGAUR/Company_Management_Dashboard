@@ -55,4 +55,4 @@ jobs:
           build-command: >-
             npx prisma db push --accept-data-loss &&
             npm run build &&
-            rm -rf node_modules/prisma node_modules/.bin/prisma
+            bun add --no-save --ignore-scripts prisma@8.0.0-rc.13
