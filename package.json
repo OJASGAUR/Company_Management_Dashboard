@@ -4,13 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "npx --yes prisma@7.9.1 generate && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate:deploy": "prisma migrate deploy"
+    "db:generate": "npx --yes prisma@7.9.1 generate",
+    "db:push": "npx --yes prisma@7.9.1 db push",
+    "db:migrate:deploy": "npx --yes prisma@7.9.1 migrate deploy"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
@@ -34,8 +34,6 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
