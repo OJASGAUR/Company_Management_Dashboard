@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 
 const providers = [
   {
@@ -26,18 +27,19 @@ const providers = [
 type Status = { google: boolean; outlook: boolean }
 
 export default function IntegrationsClient({ initialStatus }: { initialStatus: Status }) {
+  const searchParams = useSearchParams()
+  const connected = searchParams.get("connected")
+  const error = searchParams.get("error")
   const [status, setStatus] = useState(initialStatus)
   const [busy, setBusy] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(() => {
+    if (connected) return `${connected === "google" ? "Google Calendar" : "Outlook Calendar"} connected successfully.`
+    return error
+  })
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const connected = params.get("connected")
-    const error = params.get("error")
-    if (connected) setMessage(`${connected === "google" ? "Google Calendar" : "Outlook Calendar"} connected successfully.`)
-    if (error) setMessage(error)
     if (connected || error) window.history.replaceState({}, "", "/dashboard/integrations")
-  }, [])
+  }, [connected, error])
 
   async function disconnect(provider: "google" | "outlook") {
     setBusy(provider)
@@ -73,7 +75,6 @@ export default function IntegrationsClient({ initialStatus }: { initialStatus: S
       <div className="grid gap-5 md:grid-cols-2">
         {providers.map((provider) => {
           const connected = provider.key === "google-meet" ? status.google : status[provider.key]
-          const canDisconnect = provider.key !== "google-meet" && connected
 
           return (
             <article key={provider.key} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
