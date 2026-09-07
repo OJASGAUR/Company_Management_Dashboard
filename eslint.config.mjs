@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Standalone utility scripts are not part of the Next.js application bundle.
+    "seed.js",
+    "seed.ts",
+    "socket-server.js",
   ]),
 ]);
 
