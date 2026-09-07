@@ -19,7 +19,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       AUTH_SECRET: ci-only-placeholder-secret-change-me
-      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: https://cmszfa3dp1ksg12fapvct579j.sin.prisma.build
     services:
       postgres:
         image: postgres:16
@@ -51,4 +51,9 @@ jobs:
       - name: Deploy to Prisma Compute
         uses: prisma/cloud-deploy-action@v1
         with:
-          build-command: npx prisma db push --accept-data-loss && npm run build
+          prisma-version: 8.0.0-rc.13
+          build-command: >-
+            npx prisma db push --accept-data-loss &&
+            npm run build &&
+            npm install --no-save --package-lock=false --ignore-scripts prisma@8.0.0-rc.13 &&
+            ./node_modules/.bin/prisma version
