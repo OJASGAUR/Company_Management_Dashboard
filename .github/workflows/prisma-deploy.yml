@@ -16,6 +16,25 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      AUTH_SECRET: ci-only-placeholder-secret-change-me
+      NEXTAUTH_URL: http://localhost:3000
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ci -d ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,4 +51,4 @@ jobs:
       - name: Deploy to Prisma Compute
         uses: prisma/cloud-deploy-action@v1
         with:
-          build-command: npm run build
+          build-command: npx prisma db push --accept-data-loss && npm run build
