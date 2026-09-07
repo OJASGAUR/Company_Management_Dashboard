@@ -5,7 +5,7 @@ const smtpPort = Number.parseInt(process.env.SMTP_PORT || "587", 10)
 const smtpUser = process.env.SMTP_USER
 const smtpPass = process.env.SMTP_PASS
 const smtpFrom = process.env.SMTP_FROM || '"Company Portal" <notifications@company.com>'
-const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://localhost:3000"
+const appUrl = (process.env.NEXTAUTH_URL || process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "")
 
 const transporter = smtpHost && smtpUser && smtpPass
   ? nodemailer.createTransport({
@@ -40,6 +40,8 @@ export async function sendOnboardingCredentialsEmail({
   const safeEmail = escapeHtml(toEmail)
   const safeEmployeeId = escapeHtml(employeeId)
   const safeSetupLink = escapeHtml(setupLink)
+  const portalUrl = `${appUrl}/`
+  const safePortalUrl = escapeHtml(portalUrl)
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Your Company Portal account</title></head>
@@ -55,7 +57,8 @@ export async function sendOnboardingCredentialsEmail({
           <tr><td style="padding:14px 16px;background:#f8fafc;color:#64748b;font-size:13px;font-weight:700">LOGIN EMAIL</td><td style="padding:14px 16px;font-size:14px;color:#0f172a">${safeEmail}</td></tr>
           <tr><td style="padding:14px 16px;background:#f8fafc;color:#64748b;font-size:13px;font-weight:700">EMPLOYEE ID</td><td style="padding:14px 16px;font-size:14px;color:#0f172a">${safeEmployeeId}</td></tr>
         </table>
-        <p style="margin:20px 0 0;color:#475569;font-size:13px;line-height:1.6">The setup link expires automatically and can be used once. Choose a password you control when you open it.</p>
+        <p style="margin:20px 0 0;color:#475569;font-size:13px;line-height:1.6"><strong>Company Portal:</strong> <a href="${safePortalUrl}" style="color:#2563eb">${safePortalUrl}</a></p>
+        <p style="margin:10px 0 0;color:#475569;font-size:13px;line-height:1.6">The password setup link expires automatically and can be used once. You will create your own password when you open it.</p>
         <div style="text-align:center;margin-top:28px"><a href="${safeSetupLink}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px">Set My Password</a></div>
       </td></tr>
       <tr><td style="background:#f1f5f9;padding:18px 28px;text-align:center;color:#64748b;font-size:12px">Automated account email from the Company Management Portal.</td></tr>
@@ -63,10 +66,10 @@ export async function sendOnboardingCredentialsEmail({
   </td></tr></table>
 </body></html>`
 
-  const text = `Hello ${recipientName},\n\nYour Company Portal account is ready.\n\nLogin email: ${toEmail}\nEmployee ID: ${employeeId}\n\nSet your password using this one-time link:\n${setupLink}\n\nThe link expires automatically and can only be used once.`
+  const text = `Hello ${recipientName},\n\nYour Company Portal account is ready.\n\nLogin email: ${toEmail}\nEmployee ID: ${employeeId}\n\nCompany Portal: ${portalUrl}\n\nSet your password using this one-time link:\n${setupLink}\n\nThe link expires automatically and can only be used once.`
 
   if (!transporter) {
-    console.log(`[EMAIL SIMULATION] To: ${toEmail} | Subject: Your Company Portal account | Employee ID: ${employeeId} | Setup link: ${setupLink}`)
+    console.log(`[EMAIL SIMULATION] To: ${toEmail} | Subject: Your Company Portal account | Employee ID: ${employeeId} | Portal: ${portalUrl} | Setup link: ${setupLink}`)
     return { success: true, simulated: true }
   }
 
