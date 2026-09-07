@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { setOnboardingPassword } from "./actions"
@@ -45,9 +46,9 @@ export default function PasswordSetupClient() {
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-300">
               Your password has been set successfully. This setup link can no longer be used.
             </div>
-            <a href="/" className="flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 hover:bg-slate-200">
+            <Link href="/" className="flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 hover:bg-slate-200">
               Go to Sign In →
-            </a>
+            </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
