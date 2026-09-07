@@ -89,21 +89,33 @@ export async function createUser(formData: FormData) {
   const setupTokenHash = createHash("sha256").update(rawSetupToken).digest("hex")
   const setupExpires = new Date(Date.now() + 48 * 60 * 60 * 1000)
   const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://localhost:3000"
-  const setupLink = `${appUrl}/setup/password?token=${encodeURIComponent(rawSetupToken)}`
+  const setupLink = `${appUrl.replace(/\/$/, "")}/setup/password?token=${encodeURIComponent(rawSetupToken)}`
 
   await prisma.verificationToken.deleteMany({ where: { identifier: `onboarding:${created.id}` } })
   await prisma.verificationToken.create({
     data: { identifier: `onboarding:${created.id}`, token: setupTokenHash, expires: setupExpires },
   })
 
+  const emailResult = await sendOnboardingCredentialsEmail({
+    toEmail: emailAddress,
+    recipientName: name,
+    employeeId: created.employeeId ?? "",
+    setupLink,
+  })
+
   await Promise.allSettled([
-    recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role } }),
+    recordAudit({ actorId: actor.id, action: "CREATE", entity: "User", entityId: created.id, metadata: { employeeId: created.employeeId, role, onboardingEmailSent: emailResult.success && !emailResult.simulated } }),
     notifyUser(created.id, "Welcome to the company portal", "Your employee account has been created. Set your password using the secure setup link sent to your email.", "/setup/password"),
-    sendOnboardingCredentialsEmail({ toEmail: emailAddress, recipientName: name, employeeId: created.employeeId ?? "", setupLink }),
   ])
 
   revalidatePath("/admin/users")
-  return { success: true, id: created.id, employeeId: created.employeeId ?? "" }
+  return {
+    success: true,
+    id: created.id,
+    employeeId: created.employeeId ?? "",
+    emailSent: emailResult.success && !emailResult.simulated,
+    emailSimulated: emailResult.simulated === true,
+  }
 }
 
 export async function setUserActive(formData: FormData) {
