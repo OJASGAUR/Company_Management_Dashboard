@@ -52,7 +52,9 @@ jobs:
         uses: prisma/cloud-deploy-action@v1
         with:
           prisma-version: 8.0.0-rc.13
-          install-command: npm install --package-lock=false --ignore-scripts
+          install-command: >-
+            npm install --package-lock=false --ignore-scripts &&
+            npm install --no-save --package-lock=false --ignore-scripts prisma@8.0.0-rc.13
           build-command: >-
             npx --yes prisma@7.9.1 db push --accept-data-loss &&
             npm run build
