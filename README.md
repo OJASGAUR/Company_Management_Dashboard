@@ -172,4 +172,4 @@ npm run build
 
 The repository also contains `.github/workflows/ci.yml` for automated validation on pushes and pull requests to `main`.
 
-<!-- deployment trigger -->
+<!-- deployment trigger 2026-09-07: redeploy current main after onboarding email changes -->
