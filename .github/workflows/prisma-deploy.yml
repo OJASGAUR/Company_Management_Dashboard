@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: prisma-compute-production
@@ -28,17 +29,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Verify Prisma service token
-        env:
-          PRISMA_SERVICE_TOKEN: ${{ secrets.PRISMA_SERVICE_TOKEN }}
-        run: |
-          if [ -z "${PRISMA_SERVICE_TOKEN:-}" ]; then
-            echo "PRISMA_SERVICE_TOKEN is not configured in GitHub Actions secrets."
-            echo "Create a Prisma workspace service token and add it as the PRISMA_SERVICE_TOKEN repository secret."
-            exit 1
-          fi
-
       - name: Deploy to Prisma Compute
-        env:
-          PRISMA_SERVICE_TOKEN: ${{ secrets.PRISMA_SERVICE_TOKEN }}
-        run: bunx @prisma/cli@preview app deploy --app cmszfa3dp1ksg12fapvct579j --prod --yes --no-interactive
+        uses: prisma/cloud-deploy-action@v1
+        with:
+          build-command: npm run build
